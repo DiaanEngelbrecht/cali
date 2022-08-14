@@ -4,11 +4,26 @@ use convert_case::{Case, Casing};
 pub fn generate_controller_files_contents(proto_data: &ProtoData) -> Vec<(String, String)> {
     let mut file_with_contents = Vec::new();
     for service in proto_data.services.iter() {
-        println!("Generating service");
-
         let file_name = format!("src/controllers/{}.rs", service.name.to_case(Case::Snake));
         let mut controller_body = "".to_string();
+        let mut rpc_imports = Vec::new();
         for rpc in service.rpcs.iter() {
+            if rpc_imports
+                .iter()
+                .find(|v| v == &&rpc.request_name)
+                .is_none()
+            {
+                rpc_imports.push(rpc.request_name.clone())
+            }
+
+            if rpc_imports
+                .iter()
+                .find(|v| v == &&rpc.response_name)
+                .is_none()
+            {
+                rpc_imports.push(rpc.response_name.clone())
+            }
+
             controller_body = format!(
                 "{}
 
@@ -25,8 +40,16 @@ async fn {}(
                 rpc.response_name
             );
         }
+        let import_statement = format!(
+            "use crate::protos::{}::{{{}}};",
+            service.name.to_case(Case::Snake),
+            rpc_imports.join(", ")
+        );
+
         let file_contents = format!(
             "use tonic::async_trait;
+use tonic::{{Status, Response, Request}};
+{}
 use crate::protos::{}::{}_server::{};
 
 #[derive(Clone)]
@@ -42,6 +65,7 @@ impl {}Controller {{
 impl {} for {}Controller {{
 {}
 }}",
+            import_statement,
             service.name.to_case(Case::Snake),
             service.name.to_case(Case::Snake),
             service.name,
