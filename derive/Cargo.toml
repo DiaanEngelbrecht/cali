@@ -10,5 +10,6 @@ proc-macro = true
 syn = "1.0"
 quote = "1.0"
 convert_case = "0.5.0"
+proc-macro2 = { version = "1.0.9", default-features = false }
 flair_core = { version = "*", path = "../core" }
 
