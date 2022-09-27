@@ -127,10 +127,10 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
     flair_core::logging::util::setup();
 
     // Configure CLI App
-    let matches = App::new(#app_name)
+    let matches = clap::App::new(#app_name)
         .version(#version)
         .arg(
-            Arg::with_name("config")
+            clap::Arg::with_name("config")
                 .short('c')
                 .long("config")
                 .value_name("FILE")
@@ -141,8 +141,8 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
         .get_matches();
 
     // Setup Config File
-    let config_file = File::open(matches.value_of("config").unwrap()).unwrap();
-    let config = Arc::new({
+        let config_file = std::fs::File::open(matches.value_of("config").unwrap()).unwrap();
+    let config = std::sync::Arc::new({
         let deserializer = serde_yaml::Deserializer::from_reader(config_file);
         let config: Config = serde_ignored::deserialize(deserializer, |path| {
             log::warn!("Unused config field: {}", path);
@@ -152,7 +152,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
         config
     });
 
-    let db_pool = MySqlPoolOptions::new()
+    let db_pool = sqlx::mysql::MySqlPoolOptions::new()
         .max_connections(config.database.num_connections)
         .test_before_acquire(true)
         .connect(&config.database.url)
