@@ -141,8 +141,8 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
         .get_matches();
 
     // Setup Config File
-        let config_file = std::fs::File::open(matches.value_of("config").unwrap()).unwrap();
-    let config = std::sync::Arc::new({
+    let config_file = std::fs::File::open(matches.value_of("config").unwrap()).unwrap();
+        let config = std::sync::Arc::new({
         let deserializer = serde_yaml::Deserializer::from_reader(config_file);
         let config: Config = serde_ignored::deserialize(deserializer, |path| {
             log::warn!("Unused config field: {}", path);
@@ -151,6 +151,15 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
         // Edit config here if you want to
         config
     });
+
+    struct ServerContext {
+        db_pool: sqlx::MySqlPool,
+    }
+
+    tokio::task_local! {
+        static SERVER_CONTEXT: ServerContext;
+    }
+
 
     let db_pool = sqlx::mysql::MySqlPoolOptions::new()
         .max_connections(config.database.num_connections)
@@ -165,14 +174,17 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
     let server = tonic::transport::Server::builder()
         #(#services)*;
 
-    server
-        .serve_with_shutdown(
-            std::net::SocketAddr::from_str(&addr[..]).unwrap(),
-            async move {
-                // Add closers for other processes
-            },
-        )
-        .await?;
+        SERVER_CONTEXT.scope(ServerContext { db_pool }, async move {
+            server
+                .serve_with_shutdown(
+                    std::net::SocketAddr::from_str(&addr[..]).unwrap(),
+                    async move {
+                        // Add closers for other processes
+                    },
+                )
+                .await
+        }).await?;
+
     };
     gen.into()
 }
