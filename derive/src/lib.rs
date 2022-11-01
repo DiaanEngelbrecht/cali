@@ -13,6 +13,7 @@ use proc_macro2::{Ident, Span};
 use quote::quote;
 use std::io::prelude::*;
 
+// TODO This will make more sense in the CLI application.
 #[proc_macro]
 pub fn autogen_controllers(_item: TokenStream) -> TokenStream {
     let path = Path::new("../interface/services");
@@ -21,10 +22,13 @@ pub fn autogen_controllers(_item: TokenStream) -> TokenStream {
     let mod_contents = generate_controller_mod_file_contents(&proto_data);
 
     for (file_name, file_contents) in file_with_contents.iter() {
-        // TODO check if file exists and if it does doen't auto gen contents
-        let mut file = File::create(file_name).expect("Could not create controller file");
-        file.write_all(file_contents.as_bytes())
-            .expect("Could not write to controller file");
+        // Check if file exists and if it doesn't auto gen contents
+        let file_exists = Path::new(file_name).try_exists().unwrap_or(false);
+        if !file_exists {
+            let mut file = File::create(file_name).expect("Could not create controller file");
+            file.write_all(file_contents.as_bytes())
+                .expect("Could not write to controller file");
+        }
     }
     let mut mod_file =
         File::create("src/controllers/mod.rs").expect("Could not create controller file");
@@ -40,9 +44,34 @@ pub fn autogen_controllers(_item: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
+pub fn autogen_protos(_item: TokenStream) -> TokenStream {
+    let gen = quote! {
+        let service_files: Vec<String> = std::fs::read_dir("../interface/services/")
+            .expect("Could not read contents of interface file")
+            .filter(|entry| entry.is_ok())
+            .map(|entry| entry.unwrap().path().to_str().unwrap().to_string())
+            .collect();
+
+        let out_path = std::path::Path::new("src/protos");
+        if !out_path.exists() {
+            let _ = std::fs::create_dir(out_path)
+                .expect(&format!("Unable to create protos folder {:?}", out_path));
+        }
+
+        tonic_build::configure()
+            .build_server(true)
+            .out_dir(out_path.to_str().unwrap())
+            .compile(service_files.as_slice(), &["../interface/".to_string()])
+            .unwrap();
+
+    };
+    gen.into()
+}
+
+#[proc_macro]
 pub fn setup_server(input: TokenStream) -> TokenStream {
-    let mut app_name: String = "Flair App".to_string();
-    let mut version: String = "0.1.0".to_string();
+    let app_name: String;
+    let version: String;
 
     let mut params_stream = input.into_iter();
 
@@ -126,6 +155,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
     // Setup logging
     flair_core::logging::util::setup();
 
+    log::info!("Getting ready...");
     // Configure CLI App
     let matches = clap::App::new(#app_name)
         .version(#version)
@@ -141,13 +171,15 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
         .get_matches();
 
     // Setup Config File
-    let config_file = std::fs::File::open(matches.value_of("config").unwrap()).unwrap();
+    log::info!("Loading config...");
+        let config_file = std::fs::File::open(matches.value_of("config").expect("No value set for config path"))
+            .expect("Could not open config file at config/dev.yml");
         let config = std::sync::Arc::new({
         let deserializer = serde_yaml::Deserializer::from_reader(config_file);
         let config: Config = serde_ignored::deserialize(deserializer, |path| {
             log::warn!("Unused config field: {}", path);
         })
-        .unwrap();
+        .expect("Could not deserialize config");
         // Edit config here if you want to
         config
     });
@@ -161,6 +193,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
     }
 
 
+    log::info!("Connecting to DB...");
     let db_pool = sqlx::mysql::MySqlPoolOptions::new()
         .max_connections(config.database.num_connections)
         .test_before_acquire(true)
@@ -174,16 +207,24 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
     let server = tonic::transport::Server::builder()
         #(#services)*;
 
-        SERVER_CONTEXT.scope(ServerContext { db_pool }, async move {
-            server
-                .serve_with_shutdown(
-                    std::net::SocketAddr::from_str(&addr[..]).unwrap(),
-                    async move {
-                        // Add closers for other processes
-                    },
-                )
-                .await
-        }).await?;
+    log::info!("Starting server...");
+    let mut interrupt_signal = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::interrupt())?;
+    let closer = async move {
+        let _ = interrupt_signal.recv().await;
+        log::info!("Good bye!");
+    };
+
+    SERVER_CONTEXT.scope(ServerContext { db_pool }, async move {
+        server
+            .serve_with_shutdown(
+                std::net::SocketAddr::from_str(&addr[..]).unwrap(),
+                async move {
+                    // Add closers for other processes
+                    let _ = closer.await;
+                },
+            )
+            .await
+    }).await?;
 
     };
     gen.into()
