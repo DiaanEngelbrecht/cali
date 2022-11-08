@@ -1,17 +1,11 @@
 extern crate proc_macro;
-use std::{fs::File, path::Path};
+use std::path::Path;
 
 use convert_case::{Case, Casing};
-use flair_core::{
-    protos::parser::get_proto_data,
-    scaffolding::controller::{
-        generate_controller_files_contents, generate_controller_mod_file_contents,
-    },
-};
+use flair_core::protos::parser::get_proto_data;
 use proc_macro::{Delimiter, Group, TokenStream, TokenTree};
 use proc_macro2::{Ident, Span, TokenStream as TokenStream2};
 use quote::quote;
-use std::io::prelude::*;
 
 #[proc_macro]
 pub fn autogen_protos(_item: TokenStream) -> TokenStream {

@@ -2,3 +2,5 @@
 /core/target
 /derive/target
 Cargo.lock
+
+.DS_Store
