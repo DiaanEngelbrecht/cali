@@ -43,10 +43,11 @@ pub fn controller(input: TokenStream) -> TokenStream {
     let controller_struct_name = Ident::new(&format!("{}", input)[..], Span::call_site());
 
     let gen = quote! {
+        use flair_derive::endpoint;
 
         #[derive(Clone)]
         pub struct #controller_struct_name {
-            pub(crate) server_ctx: Arc<flair_core::ServerContext>,
+            pub(crate) server_ctx: std::sync::Arc<flair_core::ServerContext>,
         }
 
         impl #controller_struct_name {
