@@ -4,7 +4,10 @@ use convert_case::{Case, Casing};
 pub fn generate_controller_files_contents(proto_data: &ProtoData) -> Vec<(String, String)> {
     let mut file_with_contents = Vec::new();
     for service in proto_data.services.iter() {
-        let file_name = format!("src/controllers/{}.rs", service.name.to_case(Case::Snake));
+        let file_name = format!(
+            "web/src/controllers/{}.rs",
+            service.name.to_case(Case::Snake)
+        );
         let mut controller_body = "".to_string();
         let mut rpc_imports = Vec::new();
         for rpc in service.rpcs.iter() {
@@ -27,6 +30,7 @@ pub fn generate_controller_files_contents(proto_data: &ProtoData) -> Vec<(String
             controller_body = format!(
                 "{}
 
+#[endpoint]
 async fn {}(
         &self,
         request: Request<{}>,
@@ -49,32 +53,19 @@ async fn {}(
         let file_contents = format!(
             "use tonic::async_trait;
 use tonic::{{Status, Response, Request}};
-{}
-use crate::protos::{}::{}_server::{};
+{import_statement}
+use crate::protos::{snake_name}::{snake_name}_server::{name};
 
-#[derive(Clone)]
-pub struct {}Controller {{}}
 
-impl {}Controller {{
-    pub fn new() -> Self {{
-        {}Controller {{}}
-    }}
-}}
-
+flair_derive::controller!({name}Controller);
 #[async_trait]
-impl {} for {}Controller {{
-{}
+impl {name} for {name}Controller {{
+{controller_body}
 }}",
-            import_statement,
-            service.name.to_case(Case::Snake),
-            service.name.to_case(Case::Snake),
-            service.name,
-            service.name,
-            service.name,
-            service.name,
-            service.name,
-            service.name,
-            controller_body
+            import_statement = import_statement,
+            snake_name = service.name.to_case(Case::Snake),
+            name = service.name,
+            controller_body = controller_body
         );
         file_with_contents.push((file_name, file_contents))
     }
