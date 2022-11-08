@@ -8,8 +8,8 @@ use flair_core::{
         generate_controller_files_contents, generate_controller_mod_file_contents,
     },
 };
-use proc_macro::TokenStream;
-use proc_macro2::{Ident, Span};
+use proc_macro::{Delimiter, Group, TokenStream, TokenTree};
+use proc_macro2::{Ident, Span, TokenStream as TokenStream2};
 use quote::quote;
 use std::io::prelude::*;
 
@@ -69,6 +69,109 @@ pub fn autogen_protos(_item: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
+pub fn controller(input: TokenStream) -> TokenStream {
+    let controller_struct_name = Ident::new(&format!("{}", input)[..], Span::call_site());
+
+    let gen = quote! {
+
+        #[derive(Clone)]
+        pub struct #controller_struct_name {
+            pub(crate) server_ctx: Arc<flair_core::ServerContext>,
+        }
+
+        impl #controller_struct_name {
+            pub fn new(server_ctx: std::sync::Arc<flair_core::ServerContext>) -> Self {
+                #controller_struct_name { server_ctx }
+            }
+        }
+    };
+    gen.into()
+}
+
+#[proc_macro_attribute]
+pub fn endpoint(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    let mut items: Vec<TokenTree> = item.into_iter().collect();
+    let t = if let Some(t) = items.pop() {
+        match t {
+            TokenTree::Group(g) => TokenTree::Group(Group::new(
+                g.delimiter(),
+                g.stream()
+                    .into_iter()
+                    .map(|tt| match tt {
+                        TokenTree::Group(gd) => match gd.delimiter() {
+                            Delimiter::Parenthesis => {
+                                TokenTree::Group(Group::new(
+                                    Delimiter::Parenthesis,
+                                    gd.stream()
+                                        .into_iter()
+                                        .map(|ttt| match ttt {
+                                            TokenTree::Group(gdd) => match gdd.delimiter() {
+                                                Delimiter::Brace => {
+                                                    TokenTree::Group(Group::new(
+                                                        Delimiter::Brace,
+                                                        gdd.stream().into_iter().map(|ft| match ft {
+                                                            TokenTree::Group(fg) => match fg.delimiter() {
+                                                                Delimiter::Brace => {
+
+                                                                    if &format!("{}", fg.stream())[..] != "return __ret ;" {
+                                                                        let inner : TokenStream2 = fg.stream().into();
+                                                                        let wrapper = quote! {
+
+                                                                            flair_core::SERVER_CONTEXT
+                                                                                .scope(self.server_ctx.clone(), async move {
+                                                                                    #inner
+                                                                                })
+                                                                                .await
+                                                                        };
+
+                                                                        TokenTree::Group(Group::new(fg.delimiter(), wrapper.into()))
+                                                                    } else {
+                                                                        TokenTree::Group(fg)
+                                                                    }
+                                                                    },
+                                                                fd => {
+                                                                    TokenTree::Group(Group::new(fd, fg.stream()))
+                                                                }
+                                                            },
+                                                            _ => ft,
+                                                        }).collect(),
+                                                    ))
+                                                }
+                                                dd => {
+                                                    TokenTree::Group(Group::new(dd, gdd.stream()))
+                                                }
+                                            },
+                                            _ => ttt,
+                                        })
+                                        .collect(),
+                                ))
+                            }
+                            d => TokenTree::Group(Group::new(d, gd.stream())),
+                        },
+                        _ => tt,
+                    })
+                    .collect(),
+            )),
+            _ => t,
+        }
+    } else {
+        TokenTree::Group(Group::new(Delimiter::Parenthesis, TokenStream::new()))
+    };
+    let body = TokenStream::from(t);
+    let body2: TokenStream2 = body.into();
+
+    let mut func_sig = TokenStream::new();
+    func_sig.extend(items.into_iter());
+    let func_sig2: TokenStream2 = func_sig.into();
+
+    let gen = quote! {
+        #func_sig2 #body2
+
+    };
+    gen.into()
+}
+
+#[proc_macro]
 pub fn setup_server(input: TokenStream) -> TokenStream {
     let app_name: String;
     let version: String;
@@ -118,7 +221,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
             );
 
             quote! {
-                let #controller_var_name = #web_crate::controllers::#controller_snake_name::#controller_name::new();
+                let #controller_var_name = #web_crate::controllers::#controller_snake_name::#controller_name::new(server_ctx.clone());
             }
         })
         .collect();
@@ -170,6 +273,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
         )
         .get_matches();
 
+
     // Setup Config File
     log::info!("Loading config...");
         let config_file = std::fs::File::open(matches.value_of("config").expect("No value set for config path"))
@@ -184,21 +288,15 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
         config
     });
 
-    struct ServerContext {
-        db_pool: sqlx::MySqlPool,
-    }
-
-    tokio::task_local! {
-        static SERVER_CONTEXT: ServerContext;
-    }
-
-
     log::info!("Connecting to DB...");
     let db_pool = sqlx::mysql::MySqlPoolOptions::new()
         .max_connections(config.database.num_connections)
         .test_before_acquire(true)
         .connect(&config.database.url)
         .await?;
+
+
+    let server_ctx = std::sync::Arc::new(flair_core::ServerContext { db_pool });
 
     #(#controllers)*
 
@@ -214,18 +312,16 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
         log::info!("Good bye!");
     };
 
-    SERVER_CONTEXT.scope(ServerContext { db_pool }, async move {
-        server
-            .serve_with_shutdown(
-                std::net::SocketAddr::from_str(&addr[..]).unwrap(),
-                async move {
-                    // Add closers for other processes
-                    let _ = closer.await;
-                },
-            )
-            .await
-    }).await?;
 
+    server
+        .serve_with_shutdown(
+            std::net::SocketAddr::from_str(&addr[..]).unwrap(),
+            async move {
+                // Add closers for other processes
+                let _ = closer.await;
+            },
+        )
+        .await?;
     };
     gen.into()
 }

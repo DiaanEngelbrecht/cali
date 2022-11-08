@@ -10,3 +10,5 @@ regex = "1"
 convert_case = "0.5.0"
 log = "0.4.17"
 log4rs = "1.1.1"
+tokio = { version = "1.6", features = ["rt-multi-thread", "time", "macros", "signal", "process"] }
+sqlx = { version = "0.6.1", default-features = false, features = ["runtime-tokio-native-tls", "mysql", "chrono", "bigdecimal", "macros"] }
