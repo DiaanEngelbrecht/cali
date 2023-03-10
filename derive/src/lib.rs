@@ -10,25 +10,26 @@ use quote::quote;
 #[proc_macro]
 pub fn autogen_protos(_item: TokenStream) -> TokenStream {
     let gen = quote! {
-        let service_files: Vec<String> = std::fs::read_dir("../interface/services/")
-            .expect("Could not read contents of interface file")
-            .filter(|entry| entry.is_ok())
-            .map(|entry| entry.unwrap().path().to_str().unwrap().to_string())
-            .collect();
+            let service_files: Vec<String> = std::fs::read_dir("../interface/grpc/services/")
+                .expect("Could not read contents of interface file")
+                .filter(|entry| entry.is_ok())
+                .map(|entry| entry.unwrap().path().to_str().unwrap().to_string())
+                .collect();
 
-        let out_path = std::path::Path::new("src/protos");
-        if !out_path.exists() {
-            let _ = std::fs::create_dir(out_path)
-                .expect(&format!("Unable to create protos folder {:?}", out_path));
-        }
+            let out_path = std::path::Path::new("src/protos");
+            if !out_path.exists() {
+                let _ = std::fs::create_dir(out_path)
+                    .expect(&format!("Unable to create protos folder {:?}", out_path));
+            }
 
-        tonic_build::configure()
-            .build_server(true)
-            .out_dir(out_path.to_str().unwrap())
-            .compile(service_files.as_slice(), &["../interface/".to_string()])
-            .unwrap();
-
-    };
+            if service_files.len() > 0 {
+                tonic_build::configure()
+                    .build_server(true)
+                    .out_dir(out_path.to_str().unwrap())
+                    .compile(service_files.as_slice(), &["../interface/grpc/".to_string()])
+                    .unwrap();
+            }
+        };
     gen.into()
 }
 
@@ -158,7 +159,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
         panic!("Please add a version")
     }
 
-    let path = Path::new("../interface/services");
+    let path = Path::new("../interface/grpc/services");
     let proto_data = get_proto_data(&path).expect("Should have worked");
 
     let web_crate = Ident::new(&format!("{}_web", app_name)[..], Span::call_site());

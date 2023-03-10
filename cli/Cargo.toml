@@ -13,5 +13,5 @@ clap = { version = "4.0.22", features = ["derive"] }
 
 
 [[bin]]
-name = "main"
+name = "flair_cli"
 path = "src/entry/main.rs"

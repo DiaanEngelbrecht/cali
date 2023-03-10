@@ -1,0 +1,30 @@
+[package]
+name = "{name}_web"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "main"
+path = "src/entry/main.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+flair_core = \{ version = "*", path = "../../flair/core" }
+flair_derive = \{ version = "*", path = "../../flair/derive" }
+
+tokio = \{ version = "1.6", features = ["rt-multi-thread", "time", "macros", "signal", "process"] }
+tonic = \{ version = "0.7.2", features = ["tls", "codegen"] }
+prost = "0.10.4"
+prost-types = "0.10.1"
+sqlx = \{ version = "0.6.1", default-features = false, features = ["runtime-tokio-native-tls", "mysql", "chrono", "bigdecimal"] }
+serde = \{ version = "1", features = ["derive"] }
+serde_yaml = "0.8"
+serde_derive = "1"
+serde_ignored = "0.1"
+clap = "3.2.17"
+log = "0.4.17"
+
+[build-dependencies]
+flair_derive = \{ version = "*", path = "../../flair/derive" }
+tonic-build = "0.7.2"
