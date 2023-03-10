@@ -1,4 +1,8 @@
-use std::{fs::File, io::Write, path::Path};
+use std::{
+    fs::File,
+    io::Write,
+    path::Path,
+};
 
 use clap::{Parser, Subcommand};
 use flair_core::{
@@ -8,18 +12,23 @@ use flair_core::{
     },
 };
 
-/// Simple program to greet a person
+/// Flair CLI
+/// Create a new application with New
+/// Scaffold into an existing application with Generate
 #[derive(Parser, Debug)]
 #[command(name = "Flair CLI")]
 #[command(author = "Diaan Engelbrecht")]
 #[command(version, about = "CLI utilities for the Flair Framework", long_about = None)]
 struct Cli {
     #[command(subcommand)]
-    generate: Option<Commands>,
+    commands: Option<Commands>,
 }
 
 #[derive(Subcommand, Debug)]
 enum Commands {
+    New {
+        name: String,
+    },
     Generate {
         #[command(subcommand)]
         target: GenerateTarget,
@@ -34,10 +43,18 @@ enum GenerateTarget {
 fn main() {
     let cli = Cli::parse();
 
-    if let Some(Commands::Generate { target }) = &cli.generate {
+    if let Some(Commands::New { name }) = &cli.commands {
+        // Create application directory
+        //
+        flair_cli::scaffold::new::create_app(name);
+
+        ()
+    }
+
+    if let Some(Commands::Generate { target }) = &cli.commands {
         match target {
             GenerateTarget::Controllers => {
-                let path = Path::new("./interface/services");
+                let path = Path::new("./interface/grpc/services");
                 let proto_data = get_proto_data(&path).expect("Should have worked");
                 let file_with_contents = generate_controller_files_contents(&proto_data);
                 let mod_contents = generate_controller_mod_file_contents(&proto_data);

@@ -1,3 +1,5 @@
+# Current objectives
+
 1. Create a cli application: creates a protos directory, inside of it create a services and a models directory
 -- web/
 --- src/
