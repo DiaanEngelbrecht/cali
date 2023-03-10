@@ -1,8 +1,4 @@
-use std::{
-    fs::File,
-    io::Write,
-    path::Path,
-};
+use std::{fs::File, io::Write, path::Path};
 
 use clap::{Parser, Subcommand};
 use flair_core::{
