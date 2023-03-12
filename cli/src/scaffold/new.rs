@@ -50,6 +50,8 @@ fn create_files(name: &str) {
         (BUILD_TEMPLATE, format!("./{}/web/build.rs", name)),
         (LIB_TEMPLATE, format!("./{}/web/src/lib.rs", name)),
         (CONFIG_TEMPLATE, format!("./{}/web/src/config.rs", name)),
+        ("", format!("./{}/web/src/controllers/mod.rs", name)),
+        ("", format!("./{}/web/src/protos/mod.rs", name)),
     ];
     let context = Context {
         name: name.to_string(),

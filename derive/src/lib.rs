@@ -56,6 +56,10 @@ pub fn controller(input: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 pub fn endpoint(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    // Look, this is a illegible piece of code.
+    // but, it's a illegible piece of code that works
+    //
+    // ...for now atleast.
     let mut items: Vec<TokenTree> = item.into_iter().collect();
     let t = if let Some(t) = items.pop() {
         match t {
@@ -220,7 +224,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
         })
         .collect();
 
-    let gen = quote! {
+    let mut body = quote! {
     // Setup logging
     flair_core::logging::util::setup();
 
@@ -264,30 +268,37 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
 
     let server_ctx = std::sync::Arc::new(flair_core::ServerContext { db_pool });
 
-    #(#controllers)*
-
-    let (host, port) = flair_core::helpers::split_host_and_port(&config.bind_address);
-    let addr = format!("{}:{}", host, port);
-    let server = tonic::transport::Server::builder()
-        #(#services)*;
-
-    log::info!("Starting server...");
-    let mut interrupt_signal = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::interrupt())?;
-    let closer = async move {
-        let _ = interrupt_signal.recv().await;
-        log::info!("Good bye!");
     };
 
+    let grpc_segment = quote! {
+        #(#controllers)*
 
-    server
-        .serve_with_shutdown(
-            std::net::SocketAddr::from_str(&addr[..]).unwrap(),
-            async move {
-                // Add closers for other processes
-                let _ = closer.await;
-            },
-        )
-        .await?;
+        let (host, port) = flair_core::helpers::split_host_and_port(&config.bind_address);
+        let addr = format!("{}:{}", host, port);
+        let server = tonic::transport::Server::builder()
+            #(#services)*;
+
+        log::info!("Starting GRPC server...");
+        let mut interrupt_signal = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::interrupt())?;
+        let closer = async move {
+            let _ = interrupt_signal.recv().await;
+            log::info!("Good bye!");
+        };
+
+        server
+            .serve_with_shutdown(
+                std::net::SocketAddr::from_str(&addr[..]).unwrap(),
+                async move {
+                    // Add closers for other processes
+                    let _ = closer.await;
+                },
+            )
+            .await?;
     };
-    gen.into()
+
+    if services.len() > 0 {
+        body.extend(grpc_segment);
+    }
+
+    body.into()
 }
