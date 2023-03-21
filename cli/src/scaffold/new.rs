@@ -42,6 +42,7 @@ static CARGO_TEMPLATE: &'static str = include_str!("../../templates/web/Cargo.to
 static BUILD_TEMPLATE: &'static str = include_str!("../../templates/web/build.rs.tt");
 static LIB_TEMPLATE: &'static str = include_str!("../../templates/web/lib.rs.tt");
 static CONFIG_TEMPLATE: &'static str = include_str!("../../templates/web/config.rs.tt");
+static CONFIG_EXAMPLE: &'static str = include_str!("../../templates/web/dev.yml.tt");
 
 fn create_files(name: &str) {
     let files = [
@@ -50,6 +51,7 @@ fn create_files(name: &str) {
         (BUILD_TEMPLATE, format!("./{}/web/build.rs", name)),
         (LIB_TEMPLATE, format!("./{}/web/src/lib.rs", name)),
         (CONFIG_TEMPLATE, format!("./{}/web/src/config.rs", name)),
+        (CONFIG_EXAMPLE, format!("./{}/web/config/dev.yml", name)),
         ("", format!("./{}/web/src/controllers/mod.rs", name)),
         ("", format!("./{}/web/src/protos/mod.rs", name)),
     ];

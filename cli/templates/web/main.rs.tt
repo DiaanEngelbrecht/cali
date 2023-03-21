@@ -1,6 +1,6 @@
 use {name}_web::config::Config;
 use flair_derive::setup_server;
-use std::error::Error;
+use std::\{error::Error, str::FromStr};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> \{
