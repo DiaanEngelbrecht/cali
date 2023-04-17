@@ -1,6 +1,7 @@
 /cli/target
 /core/target
 /derive/target
+/target
 Cargo.lock
 
 .DS_Store
