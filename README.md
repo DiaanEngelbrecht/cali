@@ -12,6 +12,7 @@ flair_cli new <your project name>
 ```
 
 This generates a cargo workspace with the following structure:
+```
 .
 ├── interface
 │   └── grpc
@@ -26,7 +27,7 @@ This generates a cargo workspace with the following structure:
         ├── controllers
         ├── entry
         └── protos
-
+```
 The web package is your entry point, and the interfaces directory specifies your GRPC services and models. Type out a simple service definition under `/interfaces/grpc/services` and run:
 
 ```
