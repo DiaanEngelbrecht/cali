@@ -37,21 +37,26 @@ struct Context {
     name: String,
 }
 
-static MAINRS_TEMPLATE: &'static str = include_str!("../../templates/web/main.rs.tt");
-static CARGO_TEMPLATE: &'static str = include_str!("../../templates/web/Cargo.toml.tt");
-static BUILD_TEMPLATE: &'static str = include_str!("../../templates/web/build.rs.tt");
-static LIB_TEMPLATE: &'static str = include_str!("../../templates/web/lib.rs.tt");
-static CONFIG_TEMPLATE: &'static str = include_str!("../../templates/web/config.rs.tt");
+// Template static strings
+static MAINRS_T: &'static str = include_str!("../../templates/web/main.rs.tt");
+static CARGO_T: &'static str = include_str!("../../templates/web/Cargo.toml.tt");
+static BUILD_T: &'static str = include_str!("../../templates/web/build.rs.tt");
+static LIB_T: &'static str = include_str!("../../templates/web/lib.rs.tt");
+static CONFIG_T: &'static str = include_str!("../../templates/web/config.rs.tt");
 static CONFIG_EXAMPLE: &'static str = include_str!("../../templates/web/dev.yml.tt");
+static CARGO_WORKSPACE_T: &'static str = include_str!("../../templates/Cargo.toml.tt");
+static GITIGNORE_WORKSPACE_T: &'static str = include_str!("../../templates/.gitignore.tt");
 
 fn create_files(name: &str) {
     let files = [
-        (MAINRS_TEMPLATE, format!("./{}/web/src/entry/main.rs", name)),
-        (CARGO_TEMPLATE, format!("./{}/web/Cargo.toml", name)),
-        (BUILD_TEMPLATE, format!("./{}/web/build.rs", name)),
-        (LIB_TEMPLATE, format!("./{}/web/src/lib.rs", name)),
-        (CONFIG_TEMPLATE, format!("./{}/web/src/config.rs", name)),
+        (MAINRS_T, format!("./{}/web/src/entry/main.rs", name)),
+        (CARGO_T, format!("./{}/web/Cargo.toml", name)),
+        (BUILD_T, format!("./{}/web/build.rs", name)),
+        (LIB_T, format!("./{}/web/src/lib.rs", name)),
+        (CONFIG_T, format!("./{}/web/src/config.rs", name)),
         (CONFIG_EXAMPLE, format!("./{}/web/config/dev.yml", name)),
+        (CARGO_WORKSPACE_T, format!("./{}/Cargo.toml", name)),
+        (GITIGNORE_WORKSPACE_T, format!("./{}/.gitignore", name)),
         ("", format!("./{}/web/src/controllers/mod.rs", name)),
         ("", format!("./{}/web/src/protos/mod.rs", name)),
     ];

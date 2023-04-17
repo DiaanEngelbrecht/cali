@@ -40,11 +40,7 @@ fn main() {
     let cli = Cli::parse();
 
     if let Some(Commands::New { name }) = &cli.commands {
-        // Create application directory
-        //
         flair_cli::scaffold::new::create_app(name);
-
-        ()
     }
 
     if let Some(Commands::Generate { target }) = &cli.commands {

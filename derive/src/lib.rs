@@ -163,7 +163,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
         panic!("Please add a version")
     }
 
-    let path = Path::new("../interface/grpc/services");
+    let path = Path::new("./interface/grpc/services");
     let proto_data = get_proto_data(&path).expect("Should have worked");
 
     let web_crate = Ident::new(&format!("{}_web", app_name)[..], Span::call_site());
@@ -238,7 +238,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
                 .long("config")
                 .value_name("FILE")
                 .help("Sets a custom config file")
-                .default_value("config/dev.yml")
+                .default_value("web/config/dev.yml")
                 .takes_value(true),
         )
         .get_matches();
@@ -247,7 +247,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
     // Setup Config File
     log::info!("Loading config...");
         let config_file = std::fs::File::open(matches.value_of("config").expect("No value set for config path"))
-            .expect("Could not open config file at config/dev.yml");
+            .expect("Could not open config file at web/config/dev.yml");
         let config = std::sync::Arc::new({
         let deserializer = serde_yaml::Deserializer::from_reader(config_file);
         let config: Config = serde_ignored::deserialize(deserializer, |path| {
