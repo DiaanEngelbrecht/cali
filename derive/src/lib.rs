@@ -10,26 +10,37 @@ use quote::quote;
 #[proc_macro]
 pub fn autogen_protos(_item: TokenStream) -> TokenStream {
     let gen = quote! {
-            let service_files: Vec<String> = std::fs::read_dir("../interface/grpc/services/")
-                .expect("Could not read contents of interface file")
-                .filter(|entry| entry.is_ok())
-                .map(|entry| entry.unwrap().path().to_str().unwrap().to_string())
-                .collect();
+                let service_files: Vec<String> = std::fs::read_dir("../interface/grpc/services/")
+                    .expect("Could not read contents of interface file")
+                    .filter(|entry| entry.is_ok())
+                    .map(|entry| entry.unwrap().path().to_str().unwrap().to_string())
+                    .collect();
 
-            let out_path = std::path::Path::new("src/protos");
-            if !out_path.exists() {
-                let _ = std::fs::create_dir(out_path)
-                    .expect(&format!("Unable to create protos folder {:?}", out_path));
-            }
+                let out_path = std::path::Path::new("src/protos");
+                if !out_path.exists() {
+                    let _ = std::fs::create_dir(out_path)
+                        .expect(&format!("Unable to create protos folder {:?}", out_path));
+                }
 
-            if service_files.len() > 0 {
-                tonic_build::configure()
-                    .build_server(true)
-                    .out_dir(out_path.to_str().unwrap())
-                    .compile(service_files.as_slice(), &["../interface/grpc/".to_string()])
-                    .unwrap();
-            }
-        };
+                if service_files.len() > 0 {
+                    tonic_build::configure()
+                        .build_server(true)
+                        .out_dir(out_path.to_str().unwrap())
+                        .compile(service_files.as_slice(), &["../interface/grpc/".to_string()])
+                        .unwrap();
+                }
+
+                // build the protos mod.rs
+                let path = std::path::Path::new("../interface/grpc/services");
+                let proto_data = flair_core::protos::parser::get_proto_data(&path).expect("Should have worked");
+                let mut mod_contents = "".to_string();
+                proto_data.services.iter().for_each(|service| {
+                    let import_line = format!("pub mod {};\n", service.name.to_case(Case::Snake));
+                    mod_contents.push_str(&import_line);
+                });
+                let mod_path = std::path::Path::new("src/protos/mod.rs");
+                std::fs::write(mod_path, mod_contents).expect("Could not write main file");
+            };
     gen.into()
 }
 
