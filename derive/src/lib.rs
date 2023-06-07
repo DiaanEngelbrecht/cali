@@ -249,7 +249,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
                 .long("config")
                 .value_name("FILE")
                 .help("Sets a custom config file")
-                .default_value("web/config/dev.yml")
+                .default_value("./config/dev.yml")
                 .takes_value(true),
         )
         .get_matches();
@@ -289,7 +289,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
         let server = tonic::transport::Server::builder()
             #(#services)*;
 
-        log::info!("Starting GRPC server...");
+        log::info!("GRPC server started, waiting for requests...");
         let mut interrupt_signal = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::interrupt())?;
         let closer = async move {
             let _ = interrupt_signal.recv().await;
