@@ -46,6 +46,7 @@ static CONFIG_T: &'static str = include_str!("../../templates/web/config.rs.tt")
 static CONFIG_EXAMPLE: &'static str = include_str!("../../templates/web/dev.yml.tt");
 static CARGO_WORKSPACE_T: &'static str = include_str!("../../templates/Cargo.toml.tt");
 static GITIGNORE_WORKSPACE_T: &'static str = include_str!("../../templates/.gitignore.tt");
+static README_WORKSPACE_T: &'static str = include_str!("../../templates/README.md.tt");
 
 fn create_files(name: &str) {
     let files = [
@@ -57,6 +58,7 @@ fn create_files(name: &str) {
         (CONFIG_EXAMPLE, format!("./{}/web/config/dev.yml", name)),
         (CARGO_WORKSPACE_T, format!("./{}/Cargo.toml", name)),
         (GITIGNORE_WORKSPACE_T, format!("./{}/.gitignore", name)),
+        (README_WORKSPACE_T, format!("./{}/README.md", name)),
         ("", format!("./{}/web/src/controllers/mod.rs", name)),
         ("", format!("./{}/web/src/protos/mod.rs", name)),
     ];
