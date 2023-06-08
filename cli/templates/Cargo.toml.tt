@@ -1,5 +1,6 @@
 [workspace]
 
 members = [
-    "web"
+    "web",
+    "store"
 ]

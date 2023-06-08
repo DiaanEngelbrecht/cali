@@ -1,0 +1,12 @@
+[package]
+name = "{name}_store"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tokio = \{ version = "1.6", features = ["rt-multi-thread", "time", "macros", "signal", "process"] }
+chrono = \{ version = "0.4", features = ["serde"] }
+async-trait = "0.1"
+sqlx = \{ version = "0.6.1", default-features = false, features = ["runtime-tokio-native-tls", "mysql", "chrono", "bigdecimal", "macros"] }
