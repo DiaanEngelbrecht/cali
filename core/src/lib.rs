@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 pub mod helpers;
+pub mod store;
 pub mod logging;
 pub mod protos;
 pub mod scaffolding;

@@ -64,10 +64,24 @@ pub fn controller(input: TokenStream) -> TokenStream {
     };
     gen.into()
 }
-#[proc_macro_derive(Insertable)]
-pub fn derive_insertable(item: TokenStream) -> TokenStream {
+#[proc_macro_derive(Ensnare)]
+pub fn derive_ensnare(item: TokenStream) -> TokenStream {
+    let mut top_level_iter = item.into_iter();
+    let mut struct_name: String = "".to_string();
+    if let Some(TokenTree::Ident(literal)) = top_level_iter.next() {
+        println!("Literal is {}", literal);
+        if "pub" == literal.to_string() {
+            top_level_iter.nth(0);
+            struct_name = top_level_iter
+                .next()
+                .expect("Should have been able to get a struct name")
+                .to_string();
+        } else {
+            struct_name = literal.to_string();
+        }
+    }
     let mut fields = vec![];
-    item.into_iter().for_each(|tree| {
+    top_level_iter.for_each(|tree| {
         if let TokenTree::Group(group_contents) = tree {
             let mut field_tokens = group_contents.stream().into_iter();
             loop {
@@ -81,7 +95,38 @@ pub fn derive_insertable(item: TokenStream) -> TokenStream {
         }
     });
 
-    "INSERT INTO {} ({}) VALUES ({})".parse().unwrap() // WIP
+    let impl_block = format!(
+        "impl Snare<{struct_name}> {{
+            pub fn insert<'a, E>(
+                &'a mut self
+            ) -> sqlx::query::Query<
+                '_,
+                sqlx::MySql,
+                <sqlx::MySql as sqlx::database::HasArguments<'_>>::Arguments,
+            > {{ 
+                self.query = format!(\"INSERT INTO {{}} ({fields}) VALUES ({bind_points})\", self.table_name);
+                sqlx::query(&self.query).{bindings}
+            }}
+        }}
+        ",
+        struct_name = struct_name,
+        fields = fields.join(","),
+        bind_points = fields
+            .iter()
+            .map(|_| "?".to_string())
+            .collect::<Vec<String>>()
+            .join(","),
+        bindings = fields
+            .iter()
+            .map(|f| format!("bind(record.{}.clone())", f))
+            .collect::<Vec<String>>()
+            .join(".")
+    );
+
+    println!("Struct name {}", struct_name);
+    println!("This is the function we generate: {}", impl_block);
+
+    impl_block.parse().unwrap() // WIP
 }
 
 #[proc_macro_attribute]
