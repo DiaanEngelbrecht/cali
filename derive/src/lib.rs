@@ -96,16 +96,34 @@ pub fn derive_ensnare(item: TokenStream) -> TokenStream {
     });
 
     let impl_block = format!(
-        "impl Snare<{struct_name}> {{
-            pub fn insert<'a, E>(
-                &'a mut self
+        "impl flair_core::store::snare::Ensnarable for {struct_name} {{
+            fn insert_parts(&self) -> (String, String) {{
+                (\"{fields}\".to_string(), \"{bind_points}\".to_string())
+            }}
+
+            fn capture<'a>(
+                &'a self,
+                query: sqlx::query::Query<
+                    'a,
+                    sqlx::MySql,
+                    <sqlx::MySql as sqlx::database::HasArguments<'_>>::Arguments,
+                >,
             ) -> sqlx::query::Query<
-                '_,
+                'a,
                 sqlx::MySql,
                 <sqlx::MySql as sqlx::database::HasArguments<'_>>::Arguments,
-            > {{ 
-                self.query = format!(\"INSERT INTO {{}} ({fields}) VALUES ({bind_points})\", self.table_name);
-                sqlx::query(&self.query).{bindings}
+            > {{
+                query.{bindings}
+            }}
+        }}
+
+        impl {struct_name} {{
+            fn trap(self, table_name: &str) -> flair_core::store::snare::Snare<{struct_name}> {{
+                flair_core::store::snare::Snare {{
+                    query: \"\".to_string(),
+                    table_name: table_name.to_string(),
+                    data: self,
+                }}
             }}
         }}
         ",
@@ -118,7 +136,7 @@ pub fn derive_ensnare(item: TokenStream) -> TokenStream {
             .join(","),
         bindings = fields
             .iter()
-            .map(|f| format!("bind(record.{}.clone())", f))
+            .map(|f| format!("bind(self.{}.clone())", f))
             .collect::<Vec<String>>()
             .join(".")
     );

@@ -16,19 +16,20 @@ pub trait Ensnared {
 
 pub trait Ensnarable {
     fn insert_parts(&self) -> (String, String);
-    fn capture(
-        &self,
+
+    fn capture<'a>(
+        &'a self,
         query: sqlx::query::Query<
-            '_,
+            'a,
             sqlx::MySql,
             <sqlx::MySql as sqlx::database::HasArguments<'_>>::Arguments,
         >,
     ) -> sqlx::query::Query<
-        '_,
+        'a,
         sqlx::MySql,
         <sqlx::MySql as sqlx::database::HasArguments<'_>>::Arguments,
     >;
-}
+} 
 
 impl<T: Ensnarable> Ensnared for Snare<T> {
     fn insert<'a, E>(
