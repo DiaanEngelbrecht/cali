@@ -121,7 +121,7 @@ pub fn derive_ensnare(item: TokenStream) -> TokenStream {
         }}
 
         impl {struct_name} {{
-            fn trap(self, table_name: &str) -> flair_core::store::snare::Snare<{struct_name}> {{
+            pub fn trap(self, table_name: &str) -> flair_core::store::snare::Snare<{struct_name}> {{
                 flair_core::store::snare::Snare {{
                     query: \"\".to_string(),
                     table_name: table_name.to_string(),

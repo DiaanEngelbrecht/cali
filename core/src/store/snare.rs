@@ -5,7 +5,7 @@ pub struct Snare<T> {
 }
 
 pub trait Ensnared {
-    fn insert<'a, E>(
+    fn insert<'a>(
         &'a mut self,
     ) -> sqlx::query::Query<
         '_,
@@ -32,7 +32,7 @@ pub trait Ensnarable {
 } 
 
 impl<T: Ensnarable> Ensnared for Snare<T> {
-    fn insert<'a, E>(
+    fn insert<'a>(
         &'a mut self,
     ) -> sqlx::query::Query<
         '_,
