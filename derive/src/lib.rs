@@ -69,7 +69,6 @@ pub fn derive_ensnare(item: TokenStream) -> TokenStream {
     let mut top_level_iter = item.into_iter();
     let mut struct_name: String = "".to_string();
     if let Some(TokenTree::Ident(literal)) = top_level_iter.next() {
-        println!("Literal is {}", literal);
         if "pub" == literal.to_string() {
             top_level_iter.nth(0);
             struct_name = top_level_iter
@@ -86,7 +85,11 @@ pub fn derive_ensnare(item: TokenStream) -> TokenStream {
             let mut field_tokens = group_contents.stream().into_iter();
             loop {
                 if let Some(field_name) = field_tokens.next() {
-                    fields.push(format!("{}", field_name));
+                    if field_name.to_string() == "pub" {
+                        fields.push(format!("{}", field_tokens.next().unwrap()));
+                    } else {
+                        fields.push(format!("{}", field_name));
+                    }
                     field_tokens.nth(2); // Skip over colon, type and comma
                 } else {
                     break;
@@ -141,8 +144,8 @@ pub fn derive_ensnare(item: TokenStream) -> TokenStream {
             .join(".")
     );
 
-    println!("Struct name {}", struct_name);
-    println!("This is the function we generate: {}", impl_block);
+    // println!("Struct name {}", struct_name);
+    // println!("This is the function we generate: {}", impl_block);
 
     impl_block.parse().unwrap() // WIP
 }
