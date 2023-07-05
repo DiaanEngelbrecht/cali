@@ -11,6 +11,8 @@ Flair up your rust microservice with:
 flair_cli new <your project name>
 ```
 
+Note: As this isn't published yet, you'll have build a local binary (I use a simple alias: `alias flair_cli='~/repos/flair/target/debug/flair_cli'`).
+
 This generates a cargo workspace with the following structure:
 ```
 .
@@ -90,6 +92,7 @@ While this is really convienient, there is a cost associated with task switching
 
 - Generating controllers from proto files are currently only usefull for first time codegen, and not yet smart enough to inject into your existing controllers, high priority.
 - Rewrite endpoint macro, and try to remove it by rather using Tower middleware, high priority
+- Publish, meduim priority
 - Flesh out the rest of snare for some "feels really nice" ORM goodness.
 - Add postgres support to snare, lower priority
 - Move some internal logic to internal crates to test crate splitting, lower priority
