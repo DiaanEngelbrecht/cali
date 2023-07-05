@@ -334,7 +334,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
                 .long("config")
                 .value_name("FILE")
                 .help("Sets a custom config file")
-                .default_value("./config/dev.yml")
+                .default_value("./web/config/dev.yml")
                 .takes_value(true),
         )
         .get_matches();

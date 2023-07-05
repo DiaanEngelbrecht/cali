@@ -1,8 +1,8 @@
 # Flair
 
-Let's call it a framework.
+A "framework" for developing rust microservices.
 
-Please note, flair is very new and not battle tested, it should not be a problem for most, as the libraries that flair uses are very stable, and you will easily be able to convert a flair project into it's contituent parts.
+Please note, flair is very new and not battle tested. It has a whole bunch of things it can't do yet and known issues that I'm still planning on fixing. That being said, it's built on some solid libraries that are stable, and you should be able to convert a flair project into it's contituent parts. See the TODO's at the bottom of the readme for more details on what's missing and what to expect.
 
 # Getting started
 
@@ -42,7 +42,9 @@ You should see your rust controllers generated in the controllers directory. Fro
 
 For your database logic, we autogenerate a store crate and add it to your project directly. You can delete this if you don't need it. Part of the setup server macro creates a connection pool to your database and injects it into the flair context. You can embed your own global handles to connection pools, configs, or any shared atomic references. As a rule, keep the context light & avoid shared state & mutexes in there unless you understand exactly what you're doing!
 
-Feel free to expand the `setup_server!()` macro, and have a look at what it does. You can take parts of the macro, or keep it as is. If you don't want all the database/config management, or you want to handle your tonic server more directly you can just manually implement the parts of main you like. Flair doesn't care about your main file.
+Flair also includes the `Ensnare` derive macro, as a wrapper around your Models to codegen insert, update(TODO), and select(TODO) logic. Generally flair prefers sqlx as the highest layer of abstraction, but rewriting certain codepaths can be a chore, so you can lean on this to make life a bit easier.
+
+Feel free to expand the `setup_server!()` macro, and have a look at what it does. You can take parts of the macro, or keep it as is. If you don't want all the database/config management, or you want to handle your tonic server more directly you can just manually implement the parts of main you like. Flair doesn't care about your main file. The `setup_server!()` macro will be split into smaller parts so you can pick and choose as you like.
 
 ## What is flair?
 
@@ -52,11 +54,11 @@ It's a series of codegen and convience wrappers to write web applications in rus
 
 Flair wanted to solve the following specific problems:
 
-- Have a CLI that get's you up and running with a rust microservice instantly.
-- Schema based protocols allow you to codegen your request handlers, so that you don't have to write "controllers" that implement your service's trait, which you already did in your proto files. Just write your proto file, run a command and start writing your code.
-- Transport should not be intertwined with application logic, except when the application is for transport. A flair project tries to get you to write your web interface layer separate from your application logic. From there we aim to support multiple ways to communicate (sockets, streams, queues, etc.). There is a place where you handle your transport, and there's a place where you handle your application logic. It's not always trivial/possible to switch your transport, but your framework shouldn't find it's way into the discussion.
-- Rust compile times are notorious, and not every team has the expertise/time/option to improve their crates' complition time. The last resort usually ends up being crate splitting. So what if we just already seperated our applications boundries with crates? Flair makes it easier to split your application into different crates from the get-go, by providing a structure that makes sense. This is a opt in feature, and you are welcome to ignore it if you feel that you don't need it, or embrace it when the time comes.
-- Provide a mechanism to to pass values however deep into your call stack without explicitly passing it around. This sounds really bad, and it can be, but humour me for a short detour. It's meant as a ergonomic last resort to pass certain values around without having to explicitly pass it as function parameters or embedding it in some wrapping struct and implementing functions on it. For example, you can embed the correlation/telemetry data in the context for a request, and then have that be available in some deeper nested code across crate boundaries, without having to pass the metadata around. Maybe you already have a good solution for this specific problem, but things like database connection pools, shared clients to third party services, handles to application config & more work really well with this model. It's advisable to not use this with mutable state as it could be hard to predict how requests compete for a mutex. This is the default mechanism for read only config, and to pass access to the database connection pool, it's also possible to still use flair without this mechanism if you don't feel comfortable with the idea of (tokio) task local storage. See the below section on How does it work? for more details.
+- Have a CLI that get's you up and running with a rust microservice instantly. (Kindof there, moving target)
+- Schema based protocols allow you to codegen your request handlers, so that you don't have to write "controllers" that implement your service's trait, which you already did in your proto files. Just write your proto file, run a command and start writing your code. (WIP)
+- Transport should not be intertwined with application logic, except when the application is for transport. A flair project tries to get you to write your web interface layer separate from your application logic. From there we aim to support multiple ways to communicate (sockets, streams, queues, etc.). There is a place where you handle your transport, and there's a place where you handle your application logic. It's not always trivial/possible to switch your transport, but your framework shouldn't find it's way into the discussion. (Only GRPC is supported now, so this is just fluff)
+- Rust compile times are notorious, and not every team has the expertise/time/option to improve their crates' complition time. The last resort usually ends up being crate splitting. So what if we just already seperated our applications boundries with crates? Flair makes it easier to split your application into different crates from the get-go, by providing a structure that makes sense. This is a opt in feature, and you are welcome to ignore it if you feel that you don't need it, or embrace it when the time comes. (Repository is split from main body, but core crates are still a concept)
+- Provide a mechanism to to pass values however deep into your call stack without explicitly passing it around. This sounds really bad, and it can be, but humour me for a short detour. It's meant as a ergonomic last resort to pass certain values around without having to explicitly pass it as function parameters or embedding it in some wrapping struct and implementing functions on it. For example, you can embed the correlation/telemetry data in the context for a request, and then have that be available in some deeper nested code across crate boundaries, without having to pass the metadata around. Maybe you already have a good solution for this specific problem, but things like database connection pools, shared clients to third party services, handles to application config & more work really well with this model. It's advisable to not use this with mutable state as it could be hard to predict how requests compete for a mutex. This is the default mechanism for read only config, and to pass access to the database connection pool, it's also possible to still use flair without this mechanism if you don't feel comfortable with the idea of (tokio) task local storage. See the below section on How does it work? for more details. (This is done, but will be changed to allow extension by flair users, only used internally now)
 
 ## How does it work?
 
@@ -83,3 +85,12 @@ You might have a few of these and feel comfortable passing them in explicitly, b
 Other frameworks have built their own version of this concept, but what nice about flair's is that it's completely Tokio. Which means this mechanism isn't specific to the JSON or GRPC library that you use. You can reuse this with any other library, provided it can run on Tokio.
 
 While this is really convienient, there is a cost associated with task switching, and task locals need to be moved around when you suspend your task. Holding onto a few references won't impact your applications performance significantly. Be aware that if you choose to crack this open for your own usecase, that you ideally don't want to store too much in here, and always be very wary of shared global state, so try avoiding mutable wrappers like mutexes in this context.
+
+## TODO's
+
+- Generating controllers from proto files are currently only usefull for first time codegen, and not yet smart enough to inject into your existing controllers, high priority.
+- Rewrite endpoint macro, and try to remove it by rather using Tower middleware, high priority
+- Flesh out the rest of snare for some "feels really nice" ORM goodness.
+- Add postgres support to snare, lower priority
+- Move some internal logic to internal crates to test crate splitting, lower priority
+- A lot more, still have loads I'd like to experiment with, will add it here over time!
