@@ -1,3 +1,8 @@
+use sqlx::Executor;
+
+pub trait DBConnection<'c>: Executor<'c, Database = sqlx::MySql> {}
+impl<'c, T: Executor<'c, Database = sqlx::MySql>> DBConnection<'c> for T {}
+
 pub struct Snare<T> {
     pub query: String,
     pub table_name: String,
