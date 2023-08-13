@@ -90,13 +90,11 @@ pub fn derive_ensnare(input: TokenStream) -> TokenStream {
         .collect::<Vec<String>>()
         .join(",");
 
-
     let fields = struct_fields
         .iter()
         .map(|f| f.to_string())
         .collect::<Vec<String>>()
         .join(",");
-
 
     let bindings: Vec<TokenStream2> = struct_fields
         .iter()
@@ -395,32 +393,58 @@ pub fn setup_tests(_input: TokenStream) -> TokenStream {
     // Rather let this return a wrapping type called test context under flair core?
     // That way I can implement the drop trait on that type and clean up test databases that way?
     let test_setup_body = quote! {
-        pub async fn setup(config_file: &str) -> std::sync::Arc<flair_core::ServerContext> {
-            flair_core::logging::util::setup();
+     pub async fn setup(config_file: &str) -> std::sync::Arc<flair_core::ServerContext> {
+        flair_core::logging::util::setup();
 
-            let config_file = std::fs::File::open(config_file).expect("Could not open config file");
+        let config_file = std::fs::File::open(config_file).expect("Could not open config file");
 
-            let config = std::sync::Arc::new({
-                let deserializer = serde_yaml::Deserializer::from_reader(config_file);
-                let config: Config =
-                    serde_ignored::deserialize(deserializer, |_| {}).expect("Could not deserialize config");
-                config
-            });
+        let config = std::sync::Arc::new({
+            let deserializer = serde_yaml::Deserializer::from_reader(config_file);
+            let config: Config =
+                serde_ignored::deserialize(deserializer, |_| {}).expect("Could not deserialize config");
+            config
+        });
 
-            // Delete the existing database
-            // Create the database
-            // Run all migration
+        let db_url = url::Url::parse(&config.clone().database.url).expect("Unable to parse DB url");
 
-            let db_pool = sqlx::mysql::MySqlPoolOptions::new()
-                .max_connections(1)
-                .test_before_acquire(true)
-                .connect(&config.clone().database.url)
-                .await
-                .expect("Couldn't connect to test database");
+        // Delete the existing database
+        // TODO
 
-            std::sync::Arc::new(flair_core::ServerContext { db_pool })
-        }
-    };
+        // Create the database
+        let pool = sqlx::MySqlPool::connect(&db_url[..url::Position::BeforePath])
+            .await
+            .unwrap();
+
+        let create_query = format!(
+            "CREATE DATABASE IF NOT EXISTS {}",
+            db_url
+                .path_segments()
+                .expect("No database specified")
+                .next()
+                .expect("No database specified")
+        );
+        sqlx::query(&create_query).execute(&pool).await.unwrap();
+
+        // Run all migrations
+        let pool = sqlx::MySqlPool::connect(&db_url.to_string())
+            .await
+            .unwrap();
+
+        sqlx::migrate!("../store/migrations")
+            .run(&pool)
+            .await
+            .expect("Expected to be able to run migrations");
+
+        let db_pool = sqlx::mysql::MySqlPoolOptions::new()
+            .max_connections(1)
+            .test_before_acquire(true)
+            .connect(&config.clone().database.url)
+            .await
+            .expect("Couldn't connect to test database");
+
+        std::sync::Arc::new(flair_core::ServerContext { db_pool })
+    }
+        };
 
     test_setup_body.into()
 }
