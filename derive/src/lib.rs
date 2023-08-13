@@ -342,9 +342,11 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
 
     // Setup Config File
     log::info!("Loading config...");
-        let config_file = std::fs::File::open(matches.value_of("config").expect("No value set for config path"))
-            .expect("Could not open config file at web/config/dev.yml");
-        let config = std::sync::Arc::new({
+    let config_file = std::fs::File::open(matches.value_of("config")
+                        .expect("No value set for config path"))
+                        .expect("Could not open config file at web/config/dev.yml");
+
+    let config = std::sync::Arc::new({
         let deserializer = serde_yaml::Deserializer::from_reader(config_file);
         let config: Config = serde_ignored::deserialize(deserializer, |path| {
             log::warn!("Unused config field: {}", path);
@@ -397,4 +399,33 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
     }
 
     body.into()
+}
+
+
+#[proc_macro]
+pub fn setup_tests(_input: TokenStream) -> TokenStream {
+
+    let test_setup_body = quote! {
+        pub async fn setup(config_file: &str) -> std::sync::Arc<flair_core::ServerContext> {
+            let config_file = std::fs::File::open(config_file).expect("Could not open config file");
+
+            let config = std::sync::Arc::new({
+                let deserializer = serde_yaml::Deserializer::from_reader(config_file);
+                let config: Config =
+                    serde_ignored::deserialize(deserializer, |_| {}).expect("Could not deserialize config");
+                config
+            });
+
+            let db_pool = sqlx::mysql::MySqlPoolOptions::new()
+                .max_connections(1)
+                .test_before_acquire(true)
+                .connect(&config.clone().test_database.url)
+                .await
+                .expect("Couldn't connect to test database");
+
+            std::sync::Arc::new(flair_core::ServerContext { db_pool })
+        }
+    };
+
+    test_setup_body.into()
 }

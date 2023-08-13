@@ -21,8 +21,11 @@ fn create_directories(name: &str) {
         "web/src/entry",
         "web/src/controllers",
         "web/src/protos",
+        "web/tests",
+        "web/tests/common",
         "store",
         "store/src",
+        "store/migrations",
         "store/src/repositories",
     ];
 

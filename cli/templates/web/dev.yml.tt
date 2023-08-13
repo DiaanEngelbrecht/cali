@@ -2,3 +2,6 @@ bind-address: 0.0.0.0:50570
 database:
   num-connections: 10
   url: mysql://root@127.0.0.1/{name}
+test-database:
+  num-connections: 10
+  url: mysql://root@127.0.0.1/{name}
