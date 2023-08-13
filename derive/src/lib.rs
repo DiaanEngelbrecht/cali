@@ -6,6 +6,7 @@ use flair_core::protos::parser::get_proto_data;
 use proc_macro::{Delimiter, Group, TokenStream, TokenTree};
 use proc_macro2::{Ident, Span, TokenStream as TokenStream2};
 use quote::quote;
+use syn::{parse_macro_input, DeriveInput};
 
 #[proc_macro]
 pub fn autogen_protos(_item: TokenStream) -> TokenStream {
@@ -65,89 +66,77 @@ pub fn controller(input: TokenStream) -> TokenStream {
     gen.into()
 }
 #[proc_macro_derive(Ensnare)]
-pub fn derive_ensnare(item: TokenStream) -> TokenStream {
-    let mut top_level_iter = item.into_iter();
-    let mut struct_name: String = "".to_string();
-    if let Some(TokenTree::Ident(literal)) = top_level_iter.next() {
-        if "pub" == literal.to_string() {
-            top_level_iter.nth(0);
-            struct_name = top_level_iter
-                .next()
-                .expect("Should have been able to get a struct name")
-                .to_string();
-        } else {
-            struct_name = literal.to_string();
+pub fn derive_ensnare(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let struct_name = input.ident;
+
+    let struct_fields = match input.data {
+        syn::Data::Struct(syn::DataStruct {
+            fields: syn::Fields::Named(named_fields),
+            ..
+        }) => named_fields
+            .named
+            .iter()
+            .filter_map(|f| f.ident.clone())
+            .collect::<Vec<Ident>>(),
+        _ => {
+            panic!("Can only Ensnare struct types");
         }
-    }
-    let mut fields = vec![];
-    top_level_iter.for_each(|tree| {
-        if let TokenTree::Group(group_contents) = tree {
-            let mut field_tokens = group_contents.stream().into_iter();
-            loop {
-                if let Some(field_name) = field_tokens.next() {
-                    if field_name.to_string() == "pub" {
-                        fields.push(format!("{}", field_tokens.next().unwrap()));
-                    } else {
-                        fields.push(format!("{}", field_name));
-                    }
-                    field_tokens.nth(2); // Skip over colon, type and comma
-                } else {
-                    break;
+    };
+
+    let bind_points = struct_fields
+        .iter()
+        .map(|_| "?".to_string())
+        .collect::<Vec<String>>()
+        .join(",");
+
+
+    let fields = struct_fields
+        .iter()
+        .map(|f| f.to_string())
+        .collect::<Vec<String>>()
+        .join(",");
+
+
+    let bindings: Vec<TokenStream2> = struct_fields
+        .iter()
+        .map(|f| quote!(bind(self.#f.clone())))
+        .collect();
+
+    let expanded = quote! {
+    impl flair_core::store::snare::Ensnarable for #struct_name {
+                fn insert_parts(&self) -> (String, String) {
+                    (#fields.to_string(), #bind_points.to_string())
                 }
-            }
-        }
-    });
 
-    let impl_block = format!(
-        "impl flair_core::store::snare::Ensnarable for {struct_name} {{
-            fn insert_parts(&self) -> (String, String) {{
-                (\"{fields}\".to_string(), \"{bind_points}\".to_string())
-            }}
-
-            fn capture<'a>(
-                &'a self,
-                query: sqlx::query::Query<
+                fn capture<'a>(
+                    &'a self,
+                    query: sqlx::query::Query<
+                        'a,
+                        sqlx::MySql,
+                        <sqlx::MySql as sqlx::database::HasArguments<'_>>::Arguments,
+                    >,
+                ) -> sqlx::query::Query<
                     'a,
                     sqlx::MySql,
                     <sqlx::MySql as sqlx::database::HasArguments<'_>>::Arguments,
-                >,
-            ) -> sqlx::query::Query<
-                'a,
-                sqlx::MySql,
-                <sqlx::MySql as sqlx::database::HasArguments<'_>>::Arguments,
-            > {{
-                query.{bindings}
-            }}
-        }}
+                > {
+                    query.#(#bindings).*
+                }
+            }
 
-        impl {struct_name} {{
-            pub fn trap(self, table_name: &str) -> flair_core::store::snare::Snare<{struct_name}> {{
-                flair_core::store::snare::Snare {{
-                    query: \"\".to_string(),
-                    table_name: table_name.to_string(),
-                    data: self,
-                }}
-            }}
-        }}
-        ",
-        struct_name = struct_name,
-        fields = fields.join(","),
-        bind_points = fields
-            .iter()
-            .map(|_| "?".to_string())
-            .collect::<Vec<String>>()
-            .join(","),
-        bindings = fields
-            .iter()
-            .map(|f| format!("bind(self.{}.clone())", f))
-            .collect::<Vec<String>>()
-            .join(".")
-    );
+            impl #struct_name {
+                pub fn trap(self, table_name: &str) -> flair_core::store::snare::Snare<#struct_name> {
+                    flair_core::store::snare::Snare {
+                        query: "".to_string(),
+                        table_name: table_name.to_string(),
+                        data: self,
+                    }
+                }
+            }
+        };
 
-    // println!("Struct name {}", struct_name);
-    // println!("This is the function we generate: {}", impl_block);
-
-    impl_block.parse().unwrap() // WIP
+    TokenStream::from(expanded)
 }
 
 #[proc_macro_attribute]
@@ -401,10 +390,8 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
     body.into()
 }
 
-
 #[proc_macro]
 pub fn setup_tests(_input: TokenStream) -> TokenStream {
-
     let test_setup_body = quote! {
         pub async fn setup(config_file: &str) -> std::sync::Arc<flair_core::ServerContext> {
             let config_file = std::fs::File::open(config_file).expect("Could not open config file");
