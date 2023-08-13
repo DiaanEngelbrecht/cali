@@ -392,8 +392,12 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn setup_tests(_input: TokenStream) -> TokenStream {
+    // Rather let this return a wrapping type called test context under flair core?
+    // That way I can implement the drop trait on that type and clean up test databases that way?
     let test_setup_body = quote! {
         pub async fn setup(config_file: &str) -> std::sync::Arc<flair_core::ServerContext> {
+            flair_core::logging::util::setup();
+
             let config_file = std::fs::File::open(config_file).expect("Could not open config file");
 
             let config = std::sync::Arc::new({
@@ -403,10 +407,14 @@ pub fn setup_tests(_input: TokenStream) -> TokenStream {
                 config
             });
 
+            // Delete the existing database
+            // Create the database
+            // Run all migration
+
             let db_pool = sqlx::mysql::MySqlPoolOptions::new()
                 .max_connections(1)
                 .test_before_acquire(true)
-                .connect(&config.clone().test_database.url)
+                .connect(&config.clone().database.url)
                 .await
                 .expect("Couldn't connect to test database");
 

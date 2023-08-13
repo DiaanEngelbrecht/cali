@@ -46,7 +46,8 @@ static CARGO_T: &'static str = include_str!("../../templates/web/Cargo.toml.tt")
 static BUILD_T: &'static str = include_str!("../../templates/web/build.rs.tt");
 static LIB_T: &'static str = include_str!("../../templates/web/lib.rs.tt");
 static CONFIG_T: &'static str = include_str!("../../templates/web/config.rs.tt");
-static CONFIG_EXAMPLE: &'static str = include_str!("../../templates/web/dev.yml.tt");
+static DEV_CONFIG_EXAMPLE: &'static str = include_str!("../../templates/web/dev.yml.tt");
+static TEST_CONFIG_EXAMPLE: &'static str = include_str!("../../templates/web/test.yml.tt");
 static CARGO_WORKSPACE_T: &'static str = include_str!("../../templates/Cargo.toml.tt");
 static GITIGNORE_WORKSPACE_T: &'static str = include_str!("../../templates/.gitignore.tt");
 static README_WORKSPACE_T: &'static str = include_str!("../../templates/README.md.tt");
@@ -58,7 +59,8 @@ fn create_files(name: &str) {
         (BUILD_T, format!("./{}/web/build.rs", name)),
         (LIB_T, format!("./{}/web/src/lib.rs", name)),
         (CONFIG_T, format!("./{}/web/src/config.rs", name)),
-        (CONFIG_EXAMPLE, format!("./{}/web/config/dev.yml", name)),
+        (DEV_CONFIG_EXAMPLE, format!("./{}/web/config/dev.yml", name)),
+        (TEST_CONFIG_EXAMPLE, format!("./{}/web/config/test.yml", name)),
         (CARGO_WORKSPACE_T, format!("./{}/Cargo.toml", name)),
         (GITIGNORE_WORKSPACE_T, format!("./{}/.gitignore", name)),
         (README_WORKSPACE_T, format!("./{}/README.md", name)),

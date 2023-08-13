@@ -5,7 +5,6 @@ use serde::\{Deserialize, Serialize};
 pub struct Config \{
     pub bind_address: String,
     pub database: DatabaseConf,
-    pub test_database: DatabaseConf,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
