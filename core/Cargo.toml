@@ -8,6 +8,9 @@ edition = "2021"
 [dependencies]
 regex = "1"
 convert_case = "0.5.0"
+syn = "1.0"
+quote = "1.0"
+proc-macro2 = { version = "1.0.9", default-features = false }
 log = "0.4.17"
 log4rs = "1.1.1"
 tokio = { version = "1.6", features = ["rt-multi-thread", "time", "macros", "signal", "process"] }
