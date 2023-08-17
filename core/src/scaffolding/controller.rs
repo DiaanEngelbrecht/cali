@@ -1,9 +1,11 @@
-use std::{collections::HashSet, fs, path::Path};
+use std::{collections::HashSet, fs, io::Write, path::Path};
 
 use crate::protos::parser::{ProtoData, ProtoService};
 use convert_case::{Case, Casing};
 use proc_macro2::{Ident, LineColumn};
-use syn::{ItemUse, UseTree};
+use syn::ImplItemFn;
+use syn::UseTree;
+use syn::{ItemImpl, ItemUse};
 
 pub fn generate_controller_files_contents(proto_data: &ProtoData) -> Vec<(String, String)> {
     let mut file_with_contents = Vec::new();
@@ -15,17 +17,17 @@ pub fn generate_controller_files_contents(proto_data: &ProtoData) -> Vec<(String
         );
 
         let file_exists = Path::new(&file_name).try_exists().unwrap_or(false);
-        let file_contents = if !file_exists {
+        if !file_exists {
             // If new file, generate a new file
-            generate_new_controller_file(service)
+            let file_contents = generate_new_controller_file(service);
+
+            file_with_contents.push((file_name, file_contents));
         } else {
             // If existing file, mutate import statement
-            //
             // and inject new function
             generate_existing_controller_file(&file_name, service)
         };
 
-        file_with_contents.push((file_name, file_contents))
     }
 
     file_with_contents
@@ -81,11 +83,13 @@ fn imported_under_path(tree_root: &UseTree, path: Vec<String>) -> Vec<&Ident> {
     }
 }
 
-fn generate_existing_controller_file(file_name: &str, service: &ProtoService) -> String {
+fn generate_existing_controller_file(file_name: &str, service: &ProtoService) -> () {
     let contents = fs::read_to_string(file_name).expect("Should have been able to read the file");
     let stream: proc_macro2::TokenStream = contents.parse().unwrap();
     let file = syn::parse2::<syn::File>(stream).unwrap();
     let mut use_trees: Vec<&UseTree> = Vec::new();
+    let mut functions: HashSet<String> = HashSet::new();
+    let mut last_func_loc = None;
 
     file.items.iter().for_each(|item| match item {
         syn::Item::Use(ItemUse {
@@ -94,14 +98,51 @@ fn generate_existing_controller_file(file_name: &str, service: &ProtoService) ->
         }) => {
             use_trees.push(root_use_tree);
         }
+        syn::Item::Impl(ItemImpl { items, .. }) => {
+            items.iter().for_each(|impl_item| match impl_item {
+                syn::ImplItem::Fn(ImplItemFn { sig, block, .. }) => {
+                    functions.insert(sig.ident.to_string());
+                    last_func_loc = Some(block.brace_token.span.close().end())
+                }
+                _ => (),
+            });
+        }
         _ => (),
     });
 
     let mut rpc_imports = HashSet::new();
+    let mut rpc_functions = Vec::new();
     for rpc in service.rpcs.iter() {
         rpc_imports.insert(rpc.request_name.clone());
         rpc_imports.insert(rpc.response_name.clone());
+
+        if functions.get(&rpc.name.to_case(Case::Snake)).is_none() {
+            rpc_functions.push(rpc);
+        }
     }
+
+    let mut controller_body = "".to_string();
+    rpc_functions.iter().for_each(|rpc| {
+        controller_body = format!(
+            "{}
+
+#[endpoint]
+async fn {}(
+        &self,
+        request: Request<{}>,
+    ) -> Result<Response<{}>, Status> {{
+        todo!()
+    }}
+",
+            controller_body,
+            rpc.name.to_case(Case::Snake),
+            rpc.request_name,
+            rpc.response_name
+        );
+    });
+
+    insert_at_loc_in_file(file_name, last_func_loc.unwrap(), controller_body)
+        .expect("Coudn't update controller file with imports");
 
     let mut import_site_loc = None;
 
@@ -129,30 +170,48 @@ fn generate_existing_controller_file(file_name: &str, service: &ProtoService) ->
         panic!("Could not find a group under crate::protos::{} to import new request & response objects into",service.name.to_case(Case::Snake));
     }
 
-    println!("Go and add {:#?} at {:?}", rpc_imports, import_site_loc);
+    let mut import_line = rpc_imports.into_iter().collect::<Vec<String>>().join(", ");
+    if !import_line.is_empty() {
+        import_line.push_str(", ");
+    }
 
-    
-    todo!()
+    insert_at_loc_in_file(file_name, import_site_loc.unwrap(), import_line)
+        .expect("Coudn't update controller file with imports");
 }
 
-/// Take the conents, and put it at the given location, in a given file_name, then reload & return
-/// the file as a string. Source code files should be small enough that this is fine
-fn insert_at_loc_in_file(file_name: &str, location: LineColumn, contents: String) -> String {
-    let local_contents = fs::read_to_string(file_name).expect("Should have been able to read the file");
+/// Take the conents, and put it at the given location, in a given file_name, and write out
+fn insert_at_loc_in_file(
+    file_name: &str,
+    location: LineColumn,
+    contents: String,
+) -> Result<(), std::io::Error> {
+    let local_contents =
+        fs::read_to_string(file_name).expect("Should have been able to read the file");
 
-    let lines : Vec<&str> = local_contents.split('\n').collect();
+    let new_file = local_contents
+        .split('\n')
+        .enumerate()
+        .map(|(num, line)| {
+            if num == location.line - 1 {
+                format!(
+                    "{}{}{}",
+                    line[..location.column].to_string(),
+                    contents,
+                    line[location.column..].to_string()
+                )
+            } else {
+                line.to_string()
+            }
+        })
+        .collect::<Vec<String>>()
+        .join("\n");
 
-    // if let Some(line) = lines.get(location.line - 1) {
-    //     format!("{}{}{}", line[..], imports, line[..])
-    // }
-
-
-    fs::read_to_string(file_name).expect("Should have been able to re-read the file")
+    fs::File::create(file_name)?.write_all(new_file.as_bytes())
 }
 
 fn generate_new_controller_file(service: &ProtoService) -> String {
     let mut controller_body = "".to_string();
-    // TODO: much better if this is a hashset
+    // TODO: much better if this is a HashSet
     let mut rpc_imports = Vec::new();
     for rpc in service.rpcs.iter() {
         if rpc_imports

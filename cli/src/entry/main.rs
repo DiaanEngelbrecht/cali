@@ -52,14 +52,10 @@ fn main() {
                 let mod_contents = generate_controller_mod_file_contents(&proto_data);
 
                 for (file_name, file_contents) in file_with_contents.iter() {
-                    // Check if file exists and if it doesn't auto gen contents
-                    // let file_exists = Path::new(file_name).try_exists().unwrap_or(false);
-                    // if !file_exists {
                     let mut file =
                         File::create(file_name).expect("Could not create controller file");
                     file.write_all(file_contents.as_bytes())
                         .expect("Could not write to controller file");
-                    // }
                 }
                 let mut mod_file = File::create("./web/src/controllers/mod.rs")
                     .expect("Could not create controller file");

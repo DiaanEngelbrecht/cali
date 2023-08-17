@@ -60,7 +60,10 @@ fn create_files(name: &str) {
         (LIB_T, format!("./{}/web/src/lib.rs", name)),
         (CONFIG_T, format!("./{}/web/src/config.rs", name)),
         (DEV_CONFIG_EXAMPLE, format!("./{}/web/config/dev.yml", name)),
-        (TEST_CONFIG_EXAMPLE, format!("./{}/web/config/test.yml", name)),
+        (
+            TEST_CONFIG_EXAMPLE,
+            format!("./{}/web/config/test.yml", name),
+        ),
         (CARGO_WORKSPACE_T, format!("./{}/Cargo.toml", name)),
         (GITIGNORE_WORKSPACE_T, format!("./{}/.gitignore", name)),
         (README_WORKSPACE_T, format!("./{}/README.md", name)),
