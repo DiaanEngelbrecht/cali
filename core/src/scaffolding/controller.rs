@@ -31,6 +31,54 @@ pub fn generate_controller_files_contents(proto_data: &ProtoData) -> Vec<(String
     file_with_contents
 }
 
+fn imported_under_path(tree_root: &UseTree, path: Vec<String>) -> Vec<&Ident> {
+    if path.len() == 0 {
+        return vec![];
+    }
+
+    // Step through the path and if the paths match we continue
+    // otherwise abort early
+    let mut path_pointer = tree_root;
+    let mut path_iter = path.iter();
+    loop {
+        let path_segment = path_iter.next();
+        if path_segment.is_none() {
+            break;
+        }
+        // We need to be able to traverse to the path
+        // before we can start looking through groups or names
+        match path_pointer {
+            UseTree::Path(p) => {
+                if p.ident == path_segment.unwrap() {
+                    path_pointer = &p.tree;
+                } else {
+                    return vec![];
+                }
+            }
+            _ => return vec![],
+        }
+    }
+
+    // Now that we have the base, we want to include all paths
+    // under the base
+    match path_pointer {
+        UseTree::Name(n) => vec![&n.ident],
+        UseTree::Group(g) => {
+            let mut under_group = vec![];
+            g.items.iter().for_each(|i| match i {
+                UseTree::Name(n) => under_group.push(&n.ident),
+                UseTree::Rename(_) => {
+                    unimplemented!("Need to still support aliases in the generate command")
+                }
+                _ => (),
+            });
+
+            return under_group;
+        }
+        _ => return vec![],
+    }
+}
+
 fn generate_existing_controller_file(file_name: &str, service: &ProtoService) -> String {
     let contents = fs::read_to_string(file_name).expect("Should have been able to read the file");
     let stream: proc_macro2::TokenStream = contents.parse().unwrap();
