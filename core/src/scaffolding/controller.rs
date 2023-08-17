@@ -1,9 +1,9 @@
-use std::{fs, path::Path};
+use std::{collections::HashSet, fs, path::Path};
 
 use crate::protos::parser::{ProtoData, ProtoService};
 use convert_case::{Case, Casing};
-use proc_macro2::Ident;
-use syn::{ItemUse, UsePath, UseTree};
+use proc_macro2::{Ident, LineColumn};
+use syn::{ItemUse, UseTree};
 
 pub fn generate_controller_files_contents(proto_data: &ProtoData) -> Vec<(String, String)> {
     let mut file_with_contents = Vec::new();
@@ -68,7 +68,9 @@ fn imported_under_path(tree_root: &UseTree, path: Vec<String>) -> Vec<&Ident> {
             g.items.iter().for_each(|i| match i {
                 UseTree::Name(n) => under_group.push(&n.ident),
                 UseTree::Rename(_) => {
-                    unimplemented!("Need to still support aliases in the generate command")
+                    unimplemented!(
+                        "Need to still support aliases in the generate controllers command"
+                    )
                 }
                 _ => (),
             });
@@ -90,40 +92,67 @@ fn generate_existing_controller_file(file_name: &str, service: &ProtoService) ->
             tree: root_use_tree,
             ..
         }) => {
-            // all_import_names_at([ident<crate>, ident<protos>, ident<service>])
-            // UseName after path directly or in group
-            // build index of all names and build diff
-            // if group, import_site at end of group span
-            // if solo, import_site as new line after line
-            // insert diff at import_site
             use_trees.push(root_use_tree);
         }
         _ => (),
     });
 
-    // let import_statement = format!(
-    //     "use crate::protos::{}::{{{}}};",
-    //     service.name.to_case(Case::Snake),
-    //     rpc_imports.join(", ")
-    // );
-
-    let mut rpc_imports = Vec::new();
+    let mut rpc_imports = HashSet::new();
     for rpc in service.rpcs.iter() {
-        if rpc_imports
-            .iter()
-            .find(|v| v == &&rpc.request_name)
-            .is_none()
-        {
-            rpc_imports.push(rpc.request_name.clone());
-            rpc_imports.push(rpc.response_name.clone());
-        }
+        rpc_imports.insert(rpc.request_name.clone());
+        rpc_imports.insert(rpc.response_name.clone());
     }
 
+    let mut import_site_loc = None;
+
+    // Get rid of all already imported paths
+    for tree_root in use_trees {
+        let imports = imported_under_path(
+            tree_root,
+            vec![
+                "crate".to_string(),
+                "protos".to_string(),
+                service.name.to_case(Case::Snake),
+            ],
+        );
+
+        if imports.len() != 1 && imports.first().is_some() {
+            import_site_loc = Some(imports.first().unwrap().span().start());
+        }
+
+        imports.iter().for_each(|ident| {
+            rpc_imports.remove(&ident.to_string());
+        });
+    }
+
+    if import_site_loc.is_none() {
+        panic!("Could not find a group under crate::protos::{} to import new request & response objects into",service.name.to_case(Case::Snake));
+    }
+
+    println!("Go and add {:#?} at {:?}", rpc_imports, import_site_loc);
+
+    
     todo!()
+}
+
+/// Take the conents, and put it at the given location, in a given file_name, then reload & return
+/// the file as a string. Source code files should be small enough that this is fine
+fn insert_at_loc_in_file(file_name: &str, location: LineColumn, contents: String) -> String {
+    let local_contents = fs::read_to_string(file_name).expect("Should have been able to read the file");
+
+    let lines : Vec<&str> = local_contents.split('\n').collect();
+
+    // if let Some(line) = lines.get(location.line - 1) {
+    //     format!("{}{}{}", line[..], imports, line[..])
+    // }
+
+
+    fs::read_to_string(file_name).expect("Should have been able to re-read the file")
 }
 
 fn generate_new_controller_file(service: &ProtoService) -> String {
     let mut controller_body = "".to_string();
+    // TODO: much better if this is a hashset
     let mut rpc_imports = Vec::new();
     for rpc in service.rpcs.iter() {
         if rpc_imports
@@ -142,6 +171,7 @@ fn generate_new_controller_file(service: &ProtoService) -> String {
             rpc_imports.push(rpc.response_name.clone())
         }
 
+        // TODO: get rid of string format favour of a proper quote!
         controller_body = format!(
             "{}
 
