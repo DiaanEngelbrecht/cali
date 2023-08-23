@@ -2,7 +2,7 @@
 
 A "framework" for developing rust microservices.
 
-Please note, flair is very new and not battle tested. It has a whole bunch of things it can't do yet and known issues that I'm still planning on fixing. That being said, it's built on some solid libraries that are stable, and you should be able to convert a flair project into it's contituent parts. See the TODO's at the bottom of the readme for more details on what's missing and what to expect.
+Please note, flair is very new and not battle tested. It has a whole bunch of things it can't do yet and known issues that I'm still planning on fixing. That being said, it's built on some solid libraries that are stable, and you should be able to convert a flair project into it's constituent parts. See the TODO's at the bottom of the readme for more details on what's missing and what to expect.
 
 # Getting started
 
