@@ -1,5 +1,5 @@
 use std::{
-    any::{Any, TypeId},
+    any::TypeId,
     collections::HashMap,
     sync::Arc,
     task::{Context, Poll},
@@ -8,7 +8,7 @@ use std::{
 use tokio::task::futures::TaskLocalFuture;
 use tower::{Layer, Service};
 
-use crate::{ServerContext, SERVER_CONTEXT};
+use crate::{MapKey, ServerContext, SERVER_CONTEXT};
 
 #[derive(Debug, Clone)]
 pub struct ServerContextLayer<T: 'static + Send + Sync> {
@@ -23,8 +23,7 @@ where
     type Service = ServerContextService<S>;
 
     fn layer(&self, service: S) -> Self::Service {
-        let mut context: HashMap<TypeId, Arc<dyn Any + Send + Sync>> = HashMap::new();
-        context.insert(TypeId::of::<T>(), self.extentable_context.clone());
+        let mut context: HashMap<TypeId, MapKey> = HashMap::new();
         context.insert(TypeId::of::<ServerContext>(), self.internal_context.clone());
         ServerContextService {
             service,
@@ -36,7 +35,7 @@ where
 #[derive(Debug, Clone)]
 pub struct ServerContextService<S> {
     service: S,
-    context: Arc<HashMap<TypeId, Arc<dyn Any + Send + Sync>>>,
+    context: Arc<HashMap<TypeId, MapKey>>,
 }
 
 impl<S, Request> Service<Request> for ServerContextService<S>
@@ -45,8 +44,7 @@ where
 {
     type Response = S::Response;
     type Error = S::Error;
-    type Future =
-        TaskLocalFuture<Arc<HashMap<TypeId, Arc<(dyn Any + Send + Sync + 'static)>>>, S::Future>;
+    type Future = TaskLocalFuture<Arc<HashMap<TypeId, MapKey>>, S::Future>;
 
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         self.service.poll_ready(cx)

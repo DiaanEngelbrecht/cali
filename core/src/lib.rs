@@ -16,6 +16,8 @@ pub struct ServerContext {
     pub db_pool: sqlx::MySqlPool,
 }
 
+type MapKey = Arc<dyn Any + Send + Sync>;
+
 tokio::task_local! {
-    pub static SERVER_CONTEXT: Arc<HashMap<TypeId, Arc<dyn Any + Send + Sync>>>;
+    pub static SERVER_CONTEXT: Arc<HashMap<TypeId,MapKey>>;
 }

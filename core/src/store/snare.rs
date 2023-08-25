@@ -34,7 +34,7 @@ pub trait Ensnarable {
         sqlx::MySql,
         <sqlx::MySql as sqlx::database::HasArguments<'_>>::Arguments,
     >;
-} 
+}
 
 impl<T: Ensnarable> Ensnared for Snare<T> {
     fn insert<'a>(

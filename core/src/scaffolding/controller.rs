@@ -27,7 +27,6 @@ pub fn generate_controller_files_contents(proto_data: &ProtoData) -> Vec<(String
             // and inject new function
             generate_existing_controller_file(&file_name, service)
         };
-
     }
 
     file_with_contents
