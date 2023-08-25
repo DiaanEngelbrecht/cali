@@ -361,6 +361,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
         let (host, port) = flair_core::helpers::split_host_and_port(&config.bind_address);
         let addr = format!("{}:{}", host, port);
         let server = tonic::transport::Server::builder()
+            .layer(ServerContextLayer)
             #(#services)*;
 
         log::info!("GRPC server started, waiting for requests...");
