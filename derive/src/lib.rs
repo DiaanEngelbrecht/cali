@@ -3,7 +3,7 @@ use std::path::Path;
 
 use convert_case::{Case, Casing};
 use flair_core::protos::parser::get_proto_data;
-use proc_macro::{Delimiter, Group, TokenStream, TokenTree};
+use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span, TokenStream as TokenStream2};
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput};
@@ -50,16 +50,12 @@ pub fn controller(input: TokenStream) -> TokenStream {
     let controller_struct_name = Ident::new(&format!("{}", input)[..], Span::call_site());
 
     let gen = quote! {
-        use flair_derive::endpoint;
-
         #[derive(Clone)]
-        pub struct #controller_struct_name {
-            pub(crate) server_ctx: std::sync::Arc<flair_core::ServerContext>,
-        }
+        pub struct #controller_struct_name {}
 
         impl #controller_struct_name {
-            pub fn new(server_ctx: std::sync::Arc<flair_core::ServerContext>) -> Self {
-                #controller_struct_name { server_ctx }
+            pub fn new() -> Self {
+                #controller_struct_name {}
             }
         }
     };
@@ -137,7 +133,6 @@ pub fn derive_ensnare(input: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
-
 #[proc_macro]
 pub fn setup_server(input: TokenStream) -> TokenStream {
     let app_name: String;
@@ -188,7 +183,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
             );
 
             quote! {
-                let #controller_var_name = #web_crate::controllers::#controller_snake_name::#controller_name::new(server_ctx.clone());
+                let #controller_var_name = #web_crate::controllers::#controller_snake_name::#controller_name::new();
             }
         })
         .collect();
@@ -222,51 +217,55 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
         .collect();
 
     let mut body = quote! {
-    // Setup logging
-    flair_core::logging::util::setup();
+        // Setup logging
+        flair_core::logging::util::setup();
 
-    log::info!("Getting ready...");
-    // Configure CLI App
-    let matches = clap::App::new(#app_name)
-        .version(#version)
-        .arg(
-            clap::Arg::with_name("config")
-                .short('c')
-                .long("config")
-                .value_name("FILE")
-                .help("Sets a custom config file")
-                .default_value("./web/config/dev.yml")
-                .takes_value(true),
-        )
-        .get_matches();
-
-
-    // Setup Config File
-    log::info!("Loading config...");
-    let config_file = std::fs::File::open(matches.value_of("config")
-                        .expect("No value set for config path"))
-                        .expect("Could not open config file at web/config/dev.yml");
-
-    let config = std::sync::Arc::new({
-        let deserializer = serde_yaml::Deserializer::from_reader(config_file);
-        let config: Config = serde_ignored::deserialize(deserializer, |path| {
-            log::warn!("Unused config field: {}", path);
-        })
-        .expect("Could not deserialize config");
-        // Edit config here if you want to
-        config
-    });
-
-    log::info!("Connecting to DB...");
-    let db_pool = sqlx::mysql::MySqlPoolOptions::new()
-        .max_connections(config.database.num_connections)
-        .test_before_acquire(true)
-        .connect(&config.database.url)
-        .await?;
+        log::info!("Getting ready...");
+        // Configure CLI App
+        let matches = clap::App::new(#app_name)
+            .version(#version)
+            .arg(
+                clap::Arg::with_name("config")
+                    .short('c')
+                    .long("config")
+                    .value_name("FILE")
+                    .help("Sets a custom config file")
+                    .default_value("./web/config/dev.yml")
+                    .takes_value(true),
+            )
+            .get_matches();
 
 
-    let server_ctx = std::sync::Arc::new(flair_core::ServerContext { db_pool });
+        // Setup Config File
+        log::info!("Loading config...");
+        let config_file = std::fs::File::open(matches.value_of("config")
+                            .expect("No value set for config path"))
+                            .expect("Could not open config file at web/config/dev.yml");
 
+        let config = std::sync::Arc::new({
+            let deserializer = serde_yaml::Deserializer::from_reader(config_file);
+            let config: Config = serde_ignored::deserialize(deserializer, |path| {
+                log::warn!("Unused config field: {}", path);
+            })
+            .expect("Could not deserialize config");
+            // Edit config here if you want to
+            config
+        });
+
+        log::info!("Connecting to DB...");
+        let db_pool = sqlx::mysql::MySqlPoolOptions::new()
+            .max_connections(config.database.num_connections)
+            .test_before_acquire(true)
+            .connect(&config.database.url)
+            .await?;
+
+
+        let server_ctx = std::sync::Arc::new(flair_core::ServerContext { db_pool });
+
+        let context_layer = flair_core::middleware::server_context::ServerContextLayer {
+            extentable_context: server_ctx.clone(), // TODO this needs to be caputured by the macro
+            internal_context: server_ctx.clone()
+        };
     };
 
     let grpc_segment = quote! {
@@ -274,8 +273,9 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
 
         let (host, port) = flair_core::helpers::split_host_and_port(&config.bind_address);
         let addr = format!("{}:{}", host, port);
+
         let server = tonic::transport::Server::builder()
-            .layer(ServerContextLayer)
+            .layer(context_layer)
             #(#services)*;
 
         log::info!("GRPC server started, waiting for requests...");

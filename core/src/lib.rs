@@ -1,16 +1,21 @@
-use std::{sync::Arc, collections::HashMap, any::{TypeId, Any}};
+use std::{
+    any::{Any, TypeId},
+    collections::HashMap,
+    sync::Arc,
+};
 
 pub mod helpers;
-pub mod store;
 pub mod logging;
+pub mod middleware;
 pub mod protos;
 pub mod scaffolding;
-pub mod middleware;
+pub mod store;
 
+#[derive(Debug, Clone)]
 pub struct ServerContext {
     pub db_pool: sqlx::MySqlPool,
 }
 
 tokio::task_local! {
-    pub static SERVER_CONTEXT: Arc<HashMap<TypeId, Arc<dyn Any>>>;
+    pub static SERVER_CONTEXT: Arc<HashMap<TypeId, Arc<dyn Any + Send + Sync>>>;
 }

@@ -1,4 +1,6 @@
-use std::str::FromStr;
+use std::{str::FromStr, sync::Arc};
+
+use crate::SERVER_CONTEXT;
 
 pub fn split_host_and_port(addr: &str) -> (&str, u16) {
     let parts = addr.split(':').collect::<Vec<_>>();
@@ -10,4 +12,19 @@ pub fn split_host_and_port(addr: &str) -> (&str, u16) {
     } else {
         (addr, 0)
     }
+}
+
+pub fn get_context<R, T: 'static>(thunk: impl FnOnce(&Arc<T>) -> R) -> R {
+    SERVER_CONTEXT.with(|ctx| match ctx.get(&std::any::TypeId::of::<T>()) {
+        Some(svr_ctx) => {
+            println!("{:?}", std::any::TypeId::of::<T>());
+
+            thunk(
+                svr_ctx
+                    .downcast_ref::<Arc<T>>()
+                    .expect("Guaranteed by HashMap structure"),
+            )
+        }
+        None => panic!("Guaranteed by middleware"),
+    })
 }
