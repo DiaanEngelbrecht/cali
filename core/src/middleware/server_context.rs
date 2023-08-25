@@ -8,24 +8,25 @@ use std::{
 use tokio::task::futures::TaskLocalFuture;
 use tower::{Layer, Service};
 
-use crate::{MapKey, ServerContext, SERVER_CONTEXT};
+use crate::{MapKey, SERVER_CONTEXT};
 
 #[derive(Debug, Clone)]
-pub struct ServerContextLayer<T: 'static + Send + Sync> {
+pub struct ServerContextLayer<T: 'static + Send + Sync, I: 'static + Send + Sync> {
     pub extentable_context: Arc<T>,
-    pub internal_context: Arc<ServerContext>,
+    pub internal_context: Arc<I>,
 } // Internal + a open struct for other people
 
-impl<S, T> Layer<S> for ServerContextLayer<T>
+impl<S, T, I> Layer<S> for ServerContextLayer<T,I>
 where
     T: 'static + Send + Sync,
+    I: 'static + Send + Sync,
 {
     type Service = ServerContextService<S>;
 
     fn layer(&self, service: S) -> Self::Service {
         let mut context: HashMap<TypeId, MapKey> = HashMap::new();
         context.insert(TypeId::of::<T>(), self.extentable_context.clone());
-        context.insert(TypeId::of::<ServerContext>(), self.internal_context.clone());
+        context.insert(TypeId::of::<I>(), self.internal_context.clone());
         ServerContextService {
             service,
             context: Arc::new(context),

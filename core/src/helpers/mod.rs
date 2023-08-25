@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::{ServerContext, SERVER_CONTEXT};
+use crate::SERVER_CONTEXT;
 
 pub fn split_host_and_port(addr: &str) -> (&str, u16) {
     let parts = addr.split(':').collect::<Vec<_>>();
@@ -16,7 +16,7 @@ pub fn split_host_and_port(addr: &str) -> (&str, u16) {
 
 pub fn get_context<R, T: 'static>(thunk: impl FnOnce(&T) -> R) -> R {
     SERVER_CONTEXT.with(
-        |ctx| match ctx.get(&std::any::TypeId::of::<ServerContext>()) {
+        |ctx| match ctx.get(&std::any::TypeId::of::<T>()) {
             Some(svr_ctx) => thunk(
                 svr_ctx
                     .downcast_ref::<T>()

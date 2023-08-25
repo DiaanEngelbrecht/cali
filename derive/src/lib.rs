@@ -260,7 +260,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
             .await?;
 
 
-        let server_ctx = std::sync::Arc::new(flair_core::ServerContext { db_pool });
+        let server_ctx : std::sync::Arc<flair_core::ServerContext<std::sync::Arc<Config>>> = std::sync::Arc::new(flair_core::ServerContext { db_pool, config: config.clone() });
 
         let context_layer = flair_core::middleware::server_context::ServerContextLayer {
             extentable_context: server_ctx.clone(), // TODO this needs to be caputured by the macro
