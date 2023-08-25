@@ -90,8 +90,6 @@ While this is really convienient, there is a cost associated with task switching
 
 ## TODO's
 
-- Generating controllers from proto files are currently only usefull for first time codegen, and not yet smart enough to inject into your existing controllers, high priority.
-- Rewrite endpoint macro, and try to remove it by rather using Tower middleware, high priority
 - Publish, meduim priority
 - Flesh out the rest of snare for some "feels really nice" ORM goodness.
 - Add postgres support to snare, lower priority
