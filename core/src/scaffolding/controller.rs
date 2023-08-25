@@ -126,7 +126,6 @@ fn generate_existing_controller_file(file_name: &str, service: &ProtoService) ->
         controller_body = format!(
             "{}
 
-#[endpoint]
 async fn {}(
         &self,
         request: Request<{}>,
@@ -234,7 +233,6 @@ fn generate_new_controller_file(service: &ProtoService) -> String {
         controller_body = format!(
             "{}
 
-#[endpoint]
 async fn {}(
         &self,
         request: Request<{}>,
