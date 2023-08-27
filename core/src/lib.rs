@@ -17,7 +17,7 @@ pub struct ServerContext<T> {
     pub config: T,
 }
 
-type MapKey = Arc<dyn Any + Send + Sync>;
+pub type MapKey = Arc<dyn Any + Send + Sync>;
 
 tokio::task_local! {
     pub static SERVER_CONTEXT: Arc<HashMap<TypeId,MapKey>>;

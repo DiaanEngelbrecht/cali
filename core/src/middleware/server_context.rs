@@ -16,7 +16,7 @@ pub struct ServerContextLayer<T: 'static + Send + Sync, I: 'static + Send + Sync
     pub internal_context: Arc<I>,
 } // Internal + a open struct for other people
 
-impl<S, T, I> Layer<S> for ServerContextLayer<T,I>
+impl<S, T, I> Layer<S> for ServerContextLayer<T, I>
 where
     T: 'static + Send + Sync,
     I: 'static + Send + Sync,
@@ -25,7 +25,7 @@ where
 
     fn layer(&self, service: S) -> Self::Service {
         let mut context: HashMap<TypeId, MapKey> = HashMap::new();
-        context.insert(TypeId::of::<T>(), self.extentable_context.clone());
+        // context.insert(TypeId::of::<T>(), self.extentable_context.clone());
         context.insert(TypeId::of::<I>(), self.internal_context.clone());
         ServerContextService {
             service,

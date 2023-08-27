@@ -304,11 +304,11 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
-pub fn setup_tests(_input: TokenStream) -> TokenStream {
+pub fn test_runner(_input: TokenStream) -> TokenStream {
     // Rather let this return a wrapping type called test context under flair core?
     // That way I can implement the drop trait on that type and clean up test databases that way?
     let test_setup_body = quote! {
-     pub async fn setup(config_file: &str) -> std::sync::Arc<flair_core::ServerContext> {
+         pub async fn run(config_file: &str, test: impl std::future::Future<Output = ()>) -> () {
         flair_core::logging::util::setup();
 
         let config_file = std::fs::File::open(config_file).expect("Could not open config file");
@@ -322,28 +322,27 @@ pub fn setup_tests(_input: TokenStream) -> TokenStream {
 
         let db_url = url::Url::parse(&config.clone().database.url).expect("Unable to parse DB url");
 
-        // Delete the existing database
-        // TODO
-
         // Create the database
         let pool = sqlx::MySqlPool::connect(&db_url[..url::Position::BeforePath])
             .await
             .unwrap();
 
-        let create_query = format!(
-            "CREATE DATABASE IF NOT EXISTS {}",
-            db_url
-                .path_segments()
-                .expect("No database specified")
-                .next()
-                .expect("No database specified")
-        );
+        let db_name = db_url
+            .path_segments()
+            .expect("No database specified")
+            .next()
+            .expect("No database specified");
+
+        // Delete the existing database
+        let drop_query = format!("DROP DATABASE {}", db_name);
+        sqlx::query(&drop_query).execute(&pool).await.unwrap();
+
+        // Recreate it
+        let create_query = format!("CREATE DATABASE IF NOT EXISTS {}", db_name);
         sqlx::query(&create_query).execute(&pool).await.unwrap();
 
         // Run all migrations
-        let pool = sqlx::MySqlPool::connect(&db_url.to_string())
-            .await
-            .unwrap();
+        let pool = sqlx::MySqlPool::connect(&db_url.to_string()).await.unwrap();
 
         sqlx::migrate!("../store/migrations")
             .run(&pool)
@@ -357,9 +356,19 @@ pub fn setup_tests(_input: TokenStream) -> TokenStream {
             .await
             .expect("Couldn't connect to test database");
 
-        std::sync::Arc::new(flair_core::ServerContext { db_pool })
+        let mut context: std::collections::HashMap<std::any::TypeId, flair_core::MapKey> =
+            std::collections::HashMap::new();
+
+        context.insert(
+            std::any::TypeId::of::<flair_core::ServerContext<std::sync::Arc<Config>>>(),
+            std::sync::Arc::new(flair_core::ServerContext { db_pool, config }),
+        );
+
+        flair_core::SERVER_CONTEXT
+            .scope(std::sync::Arc::new(context), test)
+            .await
     }
-        };
+            };
 
     test_setup_body.into()
 }
