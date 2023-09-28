@@ -334,7 +334,7 @@ pub fn test_runner(_input: TokenStream) -> TokenStream {
             .expect("No database specified");
 
         // Delete the existing database
-        let drop_query = format!("DROP DATABASE {}", db_name);
+        let drop_query = format!("DROP DATABASE IF EXISTS {}", db_name);
         sqlx::query(&drop_query).execute(&pool).await.unwrap();
 
         // Recreate it

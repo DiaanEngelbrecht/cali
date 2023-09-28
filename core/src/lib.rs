@@ -4,6 +4,7 @@ use std::{
     sync::Arc,
 };
 
+pub mod config;
 pub mod helpers;
 pub mod logging;
 pub mod middleware;
