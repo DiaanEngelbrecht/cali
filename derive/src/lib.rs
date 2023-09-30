@@ -137,10 +137,12 @@ pub fn derive_ensnare(input: TokenStream) -> TokenStream {
 pub fn setup_server(input: TokenStream) -> TokenStream {
     let app_name: String;
     let version: String;
+    let extentable_context: Ident;
 
+    let input = proc_macro2::TokenStream::from(input);
     let mut params_stream = input.into_iter();
 
-    if let Some(proc_macro::TokenTree::Literal(val)) = params_stream.next() {
+    if let Some(proc_macro2::TokenTree::Literal(val)) = params_stream.next() {
         let temp = format!("{}", val);
         params_stream.next(); // Skip the comma
         app_name = temp[1..temp.len() - 1].to_string();
@@ -148,11 +150,19 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
         panic!("Please add an application name")
     }
 
-    if let Some(proc_macro::TokenTree::Literal(val)) = params_stream.next() {
+    if let Some(proc_macro2::TokenTree::Literal(val)) = params_stream.next() {
         let temp = format!("{}", val);
         version = temp[1..temp.len() - 1].to_string();
+        params_stream.next(); // Skip the comma
     } else {
         panic!("Please add a version")
+    }
+
+
+    if let Some(proc_macro2::TokenTree::Ident(val)) = params_stream.next() {
+        extentable_context = val;
+    } else {
+        panic!("An extentable_context has to be provided")
     }
 
     let path = Path::new("./interface/grpc/services");
@@ -242,7 +252,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
                             .expect("No value set for config path"))
                             .expect("Could not open config file at web/config/dev.yml");
 
-        let config = std::sync::Arc::new({
+        let config: std::sync::Arc<Config> = std::sync::Arc::new({
             let deserializer = serde_yaml::Deserializer::from_reader(config_file);
             let config: Config = serde_ignored::deserialize(deserializer, |path| {
                 log::warn!("Unused config field: {}", path);
@@ -259,11 +269,11 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
             .connect(&config.database.url)
             .await?;
 
-
-        let server_ctx : std::sync::Arc<flair_core::ServerContext<std::sync::Arc<Config>>> = std::sync::Arc::new(flair_core::ServerContext { db_pool, config: config.clone() });
+        let server_ctx : std::sync::Arc<flair_core::ServerContext> = std::sync::Arc::new(flair_core::ServerContext { db_pool });
 
         let context_layer = flair_core::middleware::server_context::ServerContextLayer {
-            extentable_context: server_ctx.clone(), // TODO this needs to be caputured by the macro
+            config: config.clone(),
+            extentable_context: #extentable_context.clone(),
             internal_context: server_ctx.clone()
         };
     };
@@ -360,8 +370,14 @@ pub fn test_runner(_input: TokenStream) -> TokenStream {
             std::collections::HashMap::new();
 
         context.insert(
-            std::any::TypeId::of::<flair_core::ServerContext<std::sync::Arc<Config>>>(),
-            std::sync::Arc::new(flair_core::ServerContext { db_pool, config }),
+            std::any::TypeId::of::<flair_core::ServerContext>(),
+            std::sync::Arc::new(flair_core::ServerContext { db_pool }),
+        );
+
+
+        context.insert(
+            std::any::TypeId::of::<Config>(),
+            std::sync::Arc::new(config),
         );
 
         flair_core::SERVER_CONTEXT

@@ -16,7 +16,8 @@ pub fn split_host_and_port(addr: &str) -> (&str, u16) {
 
 pub fn get_context<R, T: 'static>(thunk: impl FnOnce(&T) -> R) -> R {
     SERVER_CONTEXT.with(|ctx| match ctx.get(&std::any::TypeId::of::<T>()) {
-        Some(svr_ctx) => thunk(
+        Some(svr_ctx) => 
+            thunk(
             svr_ctx
                 .downcast_ref::<T>()
                 .expect("Guaranteed by HashMap structure"),
@@ -24,3 +25,18 @@ pub fn get_context<R, T: 'static>(thunk: impl FnOnce(&T) -> R) -> R {
         None => panic!("Guaranteed by middleware"),
     })
 }
+
+
+pub fn get_context_arc<R, T: 'static>(thunk: impl FnOnce(&T) -> R) -> R {
+    SERVER_CONTEXT.with(|ctx| match ctx.get(&std::any::TypeId::of::<T>()) {
+        Some(svr_ctx) => 
+            thunk(
+            svr_ctx
+                .downcast_ref::<std::sync::Arc<T>>()
+                .expect("Guaranteed by HashMap structure"),
+        ),
+        None => panic!("Guaranteed by middleware"),
+    })
+}
+
+

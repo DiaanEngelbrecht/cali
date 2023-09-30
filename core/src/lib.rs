@@ -13,9 +13,8 @@ pub mod scaffolding;
 pub mod store;
 
 #[derive(Debug, Clone)]
-pub struct ServerContext<T> {
+pub struct ServerContext {
     pub db_pool: sqlx::MySqlPool,
-    pub config: T,
 }
 
 pub type MapKey = Arc<dyn Any + Send + Sync>;
