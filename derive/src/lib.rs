@@ -323,12 +323,12 @@ pub fn test_runner(_input: TokenStream) -> TokenStream {
 
         let config_file = std::fs::File::open(config_file).expect("Could not open config file");
 
-        let config = std::sync::Arc::new({
+        let config = {
             let deserializer = serde_yaml::Deserializer::from_reader(config_file);
             let config: Config =
                 serde_ignored::deserialize(deserializer, |_| {}).expect("Could not deserialize config");
             config
-        });
+        };
 
         let db_url = url::Url::parse(&config.clone().database.url).expect("Unable to parse DB url");
 
