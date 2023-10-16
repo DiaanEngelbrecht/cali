@@ -1,12 +1,12 @@
-use std::{fs::File, io::Write, path::Path};
 use convert_case::{Case, Casing};
+use flair_core::protos::parser::get_proto_data;
 use flair_core::protos::parser::ProtoData;
 use flair_core::protos::parser::ProtoService;
 use proc_macro2::{Ident, LineColumn};
+use std::{fs::File, io::Write, path::Path};
 use syn::ImplItemFn;
 use syn::UseTree;
 use syn::{ItemImpl, ItemUse};
-use flair_core::protos::parser::get_proto_data;
 
 pub fn sync_protos_with_controllers() {
     let path = Path::new("./interface/grpc/services");
@@ -28,7 +28,6 @@ pub fn sync_protos_with_controllers() {
 }
 
 use std::{collections::HashSet, fs};
-
 
 fn generate_controller_files_contents(proto_data: &ProtoData) -> Vec<(String, String)> {
     let mut file_with_contents = Vec::new();

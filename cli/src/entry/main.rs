@@ -27,9 +27,7 @@ enum Commands {
 #[derive(Subcommand, Debug)]
 enum GenerateTarget {
     Controllers,
-    Store {
-        name: String
-    },
+    Store { name: String },
 }
 
 fn main() {

@@ -1,4 +1,7 @@
-use std::{fs::File, io::Write};
+use std::{
+    fs::{self, File},
+    io::Write,
+};
 
 use convert_case::{Case, Casing};
 use proc_macro2::{Ident, Span};
@@ -8,6 +11,10 @@ pub fn create_store(name: String) {
     let name = pluralizer::pluralize(&name, 2, false).to_case(Case::Lower);
     let singular = pluralizer::pluralize(&name, 1, false).to_case(Case::Lower);
 
+    let name_space = Ident::new(
+        &format!("{}", name.to_case(Case::Snake))[..],
+        Span::call_site(),
+    );
     let repository = Ident::new(
         &format!("{}Repository", name.to_case(Case::Pascal))[..],
         Span::call_site(),
@@ -30,7 +37,7 @@ pub fn create_store(name: String) {
     .to_string();
 
     let store_contract = quote! {
-        use crate::repositories::accounts::models::Account;
+        use crate::repositories::#name_space::models::#model_ident;
         use async_trait::async_trait;
         use flair_core::store::snare::DBConnection;
         use sqlx::Database;
@@ -72,11 +79,11 @@ pub fn create_store(name: String) {
                 conn: C,
                 id: i64,
             ) -> Result<Option<#model_ident>, E> {
-                let #name = sqlx::query_as::<_, #model_ident>("SELECT * FROM name WHERE id = ?")
+                let #name_space = sqlx::query_as::<_, #model_ident>("SELECT * FROM #name_space WHERE id = ?")
                     .bind(id)
                     .fetch_optional(conn)
                     .await?;
-                Ok(#name)
+                Ok(#name_space)
             }
         }
     }
@@ -92,7 +99,7 @@ pub fn create_store(name: String) {
         ),
         (
             format!(
-                "store/src/repositories/{}/model.rs",
+                "store/src/repositories/{}/models.rs",
                 name.to_case(Case::Snake)
             ),
             store_model,
@@ -113,9 +120,12 @@ pub fn create_store(name: String) {
         ),
     ];
 
+    fs::create_dir(format!("store/src/repositories/{}", name))
+        .expect("Should be able to create new repository");
+
     for (file_name, file_contents) in file_with_contents.iter() {
-        let mut file = File::create(file_name).expect("Could not create controller file");
+        let mut file = File::create(file_name).expect("Could not create repository files");
         file.write_all(file_contents.as_bytes())
-            .expect("Could not write to controller file");
+            .expect("Could not write to repository file");
     }
 }
