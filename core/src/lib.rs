@@ -9,7 +9,6 @@ pub mod helpers;
 pub mod logging;
 pub mod middleware;
 pub mod protos;
-pub mod scaffolding;
 pub mod store;
 
 #[derive(Debug, Clone)]

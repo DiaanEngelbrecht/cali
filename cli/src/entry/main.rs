@@ -1,12 +1,5 @@
-use std::{fs::File, io::Write, path::Path};
-
 use clap::{Parser, Subcommand};
-use flair_core::{
-    protos::parser::get_proto_data,
-    scaffolding::controller::{
-        generate_controller_files_contents, generate_controller_mod_file_contents,
-    },
-};
+use flair_cli::scaffold::{controller::sync_protos_with_controllers, store::create_store};
 
 /// Flair CLI
 /// Create a new application with New
@@ -34,6 +27,9 @@ enum Commands {
 #[derive(Subcommand, Debug)]
 enum GenerateTarget {
     Controllers,
+    Store {
+        name: String
+    },
 }
 
 fn main() {
@@ -45,25 +41,8 @@ fn main() {
 
     if let Some(Commands::Generate { target }) = &cli.commands {
         match target {
-            GenerateTarget::Controllers => {
-                let path = Path::new("./interface/grpc/services");
-                let proto_data = get_proto_data(&path).expect("Should have worked");
-                let file_with_contents = generate_controller_files_contents(&proto_data);
-                let mod_contents = generate_controller_mod_file_contents(&proto_data);
-
-                for (file_name, file_contents) in file_with_contents.iter() {
-                    let mut file =
-                        File::create(file_name).expect("Could not create controller file");
-                    file.write_all(file_contents.as_bytes())
-                        .expect("Could not write to controller file");
-                }
-                let mut mod_file = File::create("./web/src/controllers/mod.rs")
-                    .expect("Could not create controller file");
-
-                mod_file
-                    .write_all(&mod_contents)
-                    .expect("Could not write body");
-            }
+            GenerateTarget::Controllers => sync_protos_with_controllers(),
+            GenerateTarget::Store { name } => create_store(name.clone()),
         }
     }
 }

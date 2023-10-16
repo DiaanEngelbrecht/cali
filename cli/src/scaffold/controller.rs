@@ -1,13 +1,36 @@
-use std::{collections::HashSet, fs, io::Write, path::Path};
-
-use crate::protos::parser::{ProtoData, ProtoService};
+use std::{fs::File, io::Write, path::Path};
 use convert_case::{Case, Casing};
+use flair_core::protos::parser::ProtoData;
+use flair_core::protos::parser::ProtoService;
 use proc_macro2::{Ident, LineColumn};
 use syn::ImplItemFn;
 use syn::UseTree;
 use syn::{ItemImpl, ItemUse};
+use flair_core::protos::parser::get_proto_data;
 
-pub fn generate_controller_files_contents(proto_data: &ProtoData) -> Vec<(String, String)> {
+pub fn sync_protos_with_controllers() {
+    let path = Path::new("./interface/grpc/services");
+    let proto_data = get_proto_data(&path).expect("Should have worked");
+    let file_with_contents = generate_controller_files_contents(&proto_data);
+    let mod_contents = generate_controller_mod_file_contents(&proto_data);
+
+    for (file_name, file_contents) in file_with_contents.iter() {
+        let mut file = File::create(file_name).expect("Could not create controller file");
+        file.write_all(file_contents.as_bytes())
+            .expect("Could not write to controller file");
+    }
+    let mut mod_file =
+        File::create("./web/src/controllers/mod.rs").expect("Could not create controller file");
+
+    mod_file
+        .write_all(&mod_contents)
+        .expect("Could not write body");
+}
+
+use std::{collections::HashSet, fs};
+
+
+fn generate_controller_files_contents(proto_data: &ProtoData) -> Vec<(String, String)> {
     let mut file_with_contents = Vec::new();
     for service in proto_data.services.iter() {
         // Compose the filename
@@ -271,7 +294,7 @@ impl {name} for {name}Controller {{
     )
 }
 
-pub fn generate_controller_mod_file_contents(proto_data: &ProtoData) -> Vec<u8> {
+fn generate_controller_mod_file_contents(proto_data: &ProtoData) -> Vec<u8> {
     let mut mods = Vec::new();
     for service in proto_data.services.iter() {
         mods.push(service.name.to_case(Case::Snake));
