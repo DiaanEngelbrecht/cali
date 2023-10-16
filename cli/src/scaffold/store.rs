@@ -11,7 +11,7 @@ pub fn create_store(name: String) {
     let name = pluralizer::pluralize(&name, 2, false).to_case(Case::Lower);
     let singular = pluralizer::pluralize(&name, 1, false).to_case(Case::Lower);
 
-    let name_space = Ident::new(
+    let namespace = Ident::new(
         &format!("{}", name.to_case(Case::Snake))[..],
         Span::call_site(),
     );
@@ -37,7 +37,7 @@ pub fn create_store(name: String) {
     .to_string();
 
     let store_contract = quote! {
-        use crate::repositories::#name_space::models::#model_ident;
+        use crate::repositories::#namespace::models::#model_ident;
         use async_trait::async_trait;
         use flair_core::store::snare::DBConnection;
         use sqlx::Database;
@@ -64,6 +64,8 @@ pub fn create_store(name: String) {
     }
     .to_string();
 
+    let select = format!("SELECT * FROM {} WHERE id = ?", namespace);
+
     let store_implementation = quote! {
         use async_trait::async_trait;
         use flair_core::store::snare::{DBConnection, Ensnared};
@@ -79,11 +81,11 @@ pub fn create_store(name: String) {
                 conn: C,
                 id: i64,
             ) -> Result<Option<#model_ident>, E> {
-                let #name_space = sqlx::query_as::<_, #model_ident>("SELECT * FROM #name_space WHERE id = ?")
+                let #namespace = sqlx::query_as::<_, #model_ident>(#select)
                     .bind(id)
                     .fetch_optional(conn)
                     .await?;
-                Ok(#name_space)
+                Ok(#namespace)
             }
         }
     }
