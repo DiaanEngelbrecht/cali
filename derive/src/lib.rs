@@ -158,7 +158,6 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
         panic!("Please add a version")
     }
 
-
     if let Some(proc_macro2::TokenTree::Ident(val)) = params_stream.next() {
         extentable_context = val;
     } else {

@@ -6,10 +6,12 @@ use std::{
 use convert_case::{Case, Casing};
 use proc_macro2::{Ident, Span};
 use quote::quote;
+use rust_format::{Formatter, RustFmt};
 
 pub fn create_store(name: String) {
     let name = pluralizer::pluralize(&name, 2, false).to_case(Case::Lower);
     let singular = pluralizer::pluralize(&name, 1, false).to_case(Case::Lower);
+    let formatter = RustFmt::default();
 
     let namespace = Ident::new(
         &format!("{}", name.to_case(Case::Snake))[..],
@@ -97,28 +99,28 @@ pub fn create_store(name: String) {
                 "store/src/repositories/{}/mod.rs",
                 name.to_case(Case::Snake)
             ),
-            store_mod,
+            formatter.format_str(store_mod).unwrap(),
         ),
         (
             format!(
                 "store/src/repositories/{}/models.rs",
                 name.to_case(Case::Snake)
             ),
-            store_model,
+            formatter.format_str(store_model).unwrap(),
         ),
         (
             format!(
                 "store/src/repositories/{}/contract.rs",
                 name.to_case(Case::Snake)
             ),
-            store_contract,
+            formatter.format_str(store_contract).unwrap(),
         ),
         (
             format!(
                 "store/src/repositories/{}/implementation.rs",
                 name.to_case(Case::Snake)
             ),
-            store_implementation,
+            formatter.format_str(store_implementation).unwrap(),
         ),
     ];
 

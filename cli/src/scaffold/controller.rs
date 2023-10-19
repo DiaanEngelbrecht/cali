@@ -5,6 +5,7 @@ use flair_core::protos::parser::ProtoService;
 use proc_macro2::{Ident, LineColumn};
 use std::{fs::File, io::Write, path::Path};
 use syn::ImplItemFn;
+use syn::ItemMod;
 use syn::UseTree;
 use syn::{ItemImpl, ItemUse};
 
@@ -12,19 +13,13 @@ pub fn sync_protos_with_controllers() {
     let path = Path::new("./interface/grpc/services");
     let proto_data = get_proto_data(&path).expect("Should have worked");
     let file_with_contents = generate_controller_files_contents(&proto_data);
-    let mod_contents = generate_controller_mod_file_contents(&proto_data);
+    generate_controller_mod_file_contents(&proto_data);
 
     for (file_name, file_contents) in file_with_contents.iter() {
         let mut file = File::create(file_name).expect("Could not create controller file");
         file.write_all(file_contents.as_bytes())
             .expect("Could not write to controller file");
     }
-    let mut mod_file =
-        File::create("./web/src/controllers/mod.rs").expect("Could not create controller file");
-
-    mod_file
-        .write_all(&mod_contents)
-        .expect("Could not write body");
 }
 
 use std::{collections::HashSet, fs};
@@ -293,15 +288,55 @@ impl {name} for {name}Controller {{
     )
 }
 
-fn generate_controller_mod_file_contents(proto_data: &ProtoData) -> Vec<u8> {
+fn generate_controller_mod_file_contents(proto_data: &ProtoData) {
+    let file_name = "./web/src/controllers/mod.rs";
+
+    let file_exists = Path::new(&file_name).try_exists().unwrap_or(false);
     let mut mods = Vec::new();
-    for service in proto_data.services.iter() {
-        mods.push(service.name.to_case(Case::Snake));
-    }
-    let mut mod_contents: Vec<u8> = Vec::new();
-    for mod_ in mods.iter() {
-        mod_contents.extend(format!("pub mod {};\n", mod_).as_bytes().iter())
+    let mut location = None;
+    if file_exists {
+        let contents =
+            fs::read_to_string(file_name).expect("Should have been able to read the file");
+        let stream: proc_macro2::TokenStream = contents.parse().unwrap();
+        let file = syn::parse2::<syn::File>(stream).unwrap();
+        let mut module_imports: Vec<&ItemMod> = Vec::new();
+
+        file.items.iter().for_each(|item| match item {
+            syn::Item::Mod(mod_import) => {
+                module_imports.push(mod_import);
+            }
+            _ => (),
+        });
+
+        for service in proto_data.services.iter() {
+            let i = service.name.to_case(Case::Snake);
+            match module_imports
+                .iter()
+                .find(|tree_root| tree_root.ident.to_string() == i)
+            {
+                Some(item) => location = Some(item.ident.span().end()),
+                None => mods.push(i),
+            }
+        }
+    } else {
+        for service in proto_data.services.iter() {
+            mods.push(service.name.to_case(Case::Snake));
+        }
     }
 
-    mod_contents
+    let mut mod_contents: Vec<u8> = Vec::new();
+    for mod_ in mods.iter() {
+        mod_contents.extend(format!("\npub mod {};", mod_).as_bytes().iter())
+    }
+    if let Some(loc) = location {
+        insert_at_loc_in_file(file_name, loc, String::from_utf8(mod_contents).unwrap())
+            .expect("Coudn't update controller file with imports");
+    } else {
+        let mut mod_file = File::create("./web/src/controllers/mod.rs")
+            .expect("Could not create controller mod file");
+
+        mod_file
+            .write_all(&mod_contents)
+            .expect("Could not write body");
+    }
 }
