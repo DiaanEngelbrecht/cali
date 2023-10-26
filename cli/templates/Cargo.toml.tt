@@ -2,5 +2,6 @@
 
 members = [
     "web",
-    "store"
+    "store",
+    "core"
 ]

@@ -27,6 +27,8 @@ fn create_directories(name: &str) {
         "store/src",
         "store/migrations",
         "store/src/repositories",
+        "core",
+        "core/src"
     ];
 
     directories_to_create.iter().for_each(|dir| {
@@ -41,29 +43,39 @@ struct Context {
 }
 
 // Template static strings
-static MAINRS_T: &'static str = include_str!("../../templates/web/main.rs.tt");
-static CARGO_T: &'static str = include_str!("../../templates/web/Cargo.toml.tt");
-static BUILD_T: &'static str = include_str!("../../templates/web/build.rs.tt");
-static LIB_T: &'static str = include_str!("../../templates/web/lib.rs.tt");
-static CONFIG_T: &'static str = include_str!("../../templates/web/config.rs.tt");
-static DEV_CONFIG_EXAMPLE: &'static str = include_str!("../../templates/web/dev.yml.tt");
-static TEST_CONFIG_EXAMPLE: &'static str = include_str!("../../templates/web/test.yml.tt");
+static WEB_MAINRS_T: &'static str = include_str!("../../templates/web/src/entry/main.rs.tt");
+static WEB_CARGO_T: &'static str = include_str!("../../templates/web/Cargo.toml.tt");
+static WEB_BUILD_T: &'static str = include_str!("../../templates/web/build.rs.tt");
+static WEB_LIB_T: &'static str = include_str!("../../templates/web/src/lib.rs.tt");
+static WEB_CONFIG_T: &'static str = include_str!("../../templates/web/src/config.rs.tt");
+static WEB_DEV_CONFIG_EXAMPLE: &'static str = include_str!("../../templates/web/config/dev.yml.tt");
+static WEB_TEST_CONFIG_EXAMPLE: &'static str = include_str!("../../templates/web/config/test.yml.tt");
+static CORE_CARGO_T: &'static str = include_str!("../../templates/core/Cargo.toml.tt");
+static CORE_LIB_T: &'static str = include_str!("../../templates/core/src/lib.rs.tt");
+static STORE_CARGO_T: &'static str = include_str!("../../templates/store/Cargo.toml.tt");
+static STORE_LIB_T: &'static str = include_str!("../../templates/store/src/lib.rs.tt");
+static STORE_REP_MOD_T: &'static str = include_str!("../../templates/store/src/repositories/mod.rs.tt");
 static CARGO_WORKSPACE_T: &'static str = include_str!("../../templates/Cargo.toml.tt");
 static GITIGNORE_WORKSPACE_T: &'static str = include_str!("../../templates/.gitignore.tt");
 static README_WORKSPACE_T: &'static str = include_str!("../../templates/README.md.tt");
 
 fn create_files(name: &str) {
     let files = [
-        (MAINRS_T, format!("./{}/web/src/entry/main.rs", name)),
-        (CARGO_T, format!("./{}/web/Cargo.toml", name)),
-        (BUILD_T, format!("./{}/web/build.rs", name)),
-        (LIB_T, format!("./{}/web/src/lib.rs", name)),
-        (CONFIG_T, format!("./{}/web/src/config.rs", name)),
-        (DEV_CONFIG_EXAMPLE, format!("./{}/web/config/dev.yml", name)),
+        (WEB_MAINRS_T, format!("./{}/web/src/entry/main.rs", name)),
+        (WEB_CARGO_T, format!("./{}/web/Cargo.toml", name)),
+        (WEB_BUILD_T, format!("./{}/web/build.rs", name)),
+        (WEB_LIB_T, format!("./{}/web/src/lib.rs", name)),
+        (WEB_CONFIG_T, format!("./{}/web/src/config.rs", name)),
+        (WEB_DEV_CONFIG_EXAMPLE, format!("./{}/web/config/dev.yml", name)),
         (
-            TEST_CONFIG_EXAMPLE,
+            WEB_TEST_CONFIG_EXAMPLE,
             format!("./{}/web/config/test.yml", name),
         ),
+        (CORE_CARGO_T, format!("./{}/core/Cargo.toml", name)),
+        (CORE_LIB_T, format!("./{}/core/src/lib.rs", name)),
+        (STORE_CARGO_T, format!("./{}/store/Cargo.toml", name)),
+        (STORE_LIB_T, format!("./{}/store/src/lib.rs", name)),
+        (STORE_REP_MOD_T, format!("./{}/store/src/repositories/mod.rs", name)),
         (CARGO_WORKSPACE_T, format!("./{}/Cargo.toml", name)),
         (GITIGNORE_WORKSPACE_T, format!("./{}/.gitignore", name)),
         (README_WORKSPACE_T, format!("./{}/README.md", name)),
@@ -83,6 +95,7 @@ fn create_files(name: &str) {
 
 fn create_template_file<T: Serialize>(template: &str, ctx: &T) -> String {
     let mut tt = TinyTemplate::new();
+
     tt.add_template("t", template)
         .expect("Could not create template");
 

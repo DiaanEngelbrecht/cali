@@ -1,0 +1,10 @@
+[package]
+name = "{name}_core"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+flair_core = \{ version = "*", path = "../../flair/core" }
+{name}_store = \{ version = "*", path = "../store" }
