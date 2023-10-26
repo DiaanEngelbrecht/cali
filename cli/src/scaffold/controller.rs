@@ -293,7 +293,7 @@ fn generate_controller_mod_file_contents(proto_data: &ProtoData) {
 
     let file_exists = Path::new(&file_name).try_exists().unwrap_or(false);
     let mut mods = Vec::new();
-    let mut location = None;
+    let mut location = LineColumn { line: 0, column: 0 };
     if file_exists {
         let contents =
             fs::read_to_string(file_name).expect("Should have been able to read the file");
@@ -314,7 +314,7 @@ fn generate_controller_mod_file_contents(proto_data: &ProtoData) {
                 .iter()
                 .find(|tree_root| tree_root.ident.to_string() == i)
             {
-                Some(item) => location = Some(item.ident.span().end()),
+                Some(item) => location = item.ident.span().end(),
                 None => mods.push(i),
             }
         }
@@ -328,9 +328,9 @@ fn generate_controller_mod_file_contents(proto_data: &ProtoData) {
     for mod_ in mods.iter() {
         mod_contents.extend(format!("\npub mod {};", mod_).as_bytes().iter())
     }
-    if let Some(loc) = location {
-        insert_at_loc_in_file(file_name, loc, String::from_utf8(mod_contents).unwrap())
-            .expect("Coudn't update controller file with imports");
+    if file_exists {
+        insert_at_loc_in_file(file_name, location, String::from_utf8(mod_contents).unwrap())
+            .expect("Coudn't update controller mod file.");
     } else {
         let mut mod_file = File::create("./web/src/controllers/mod.rs")
             .expect("Could not create controller mod file");

@@ -50,6 +50,7 @@ static WEB_LIB_T: &'static str = include_str!("../../templates/web/src/lib.rs.tt
 static WEB_CONFIG_T: &'static str = include_str!("../../templates/web/src/config.rs.tt");
 static WEB_DEV_CONFIG_EXAMPLE: &'static str = include_str!("../../templates/web/config/dev.yml.tt");
 static WEB_TEST_CONFIG_EXAMPLE: &'static str = include_str!("../../templates/web/config/test.yml.tt");
+static WEB_CONTROLLER_MOD_T: &'static str = include_str!("../../templates/web/src/controllers/mod.rs.tt");
 static CORE_CARGO_T: &'static str = include_str!("../../templates/core/Cargo.toml.tt");
 static CORE_LIB_T: &'static str = include_str!("../../templates/core/src/lib.rs.tt");
 static STORE_CARGO_T: &'static str = include_str!("../../templates/store/Cargo.toml.tt");
@@ -67,6 +68,7 @@ fn create_files(name: &str) {
         (WEB_LIB_T, format!("./{}/web/src/lib.rs", name)),
         (WEB_CONFIG_T, format!("./{}/web/src/config.rs", name)),
         (WEB_DEV_CONFIG_EXAMPLE, format!("./{}/web/config/dev.yml", name)),
+        (WEB_CONTROLLER_MOD_T, format!("./{}/web/src/controllers/mod.rs", name)),
         (
             WEB_TEST_CONFIG_EXAMPLE,
             format!("./{}/web/config/test.yml", name),
@@ -79,7 +81,6 @@ fn create_files(name: &str) {
         (CARGO_WORKSPACE_T, format!("./{}/Cargo.toml", name)),
         (GITIGNORE_WORKSPACE_T, format!("./{}/.gitignore", name)),
         (README_WORKSPACE_T, format!("./{}/README.md", name)),
-        ("", format!("./{}/web/src/controllers/mod.rs", name)),
         ("", format!("./{}/web/src/protos/mod.rs", name)),
     ];
     let context = Context {

@@ -24,6 +24,7 @@ serde_derive = "1"
 serde_ignored = "0.1"
 clap = "3.2.17"
 log = "0.4.17"
+thiserror = "1.0"
 
 [build-dependencies]
 flair_derive = \{ version = "*", path = "../../flair/derive" }
