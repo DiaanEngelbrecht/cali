@@ -293,7 +293,7 @@ fn generate_controller_mod_file_contents(proto_data: &ProtoData) {
 
     let file_exists = Path::new(&file_name).try_exists().unwrap_or(false);
     let mut mods = Vec::new();
-    let mut location = LineColumn { line: 0, column: 0 };
+    let mut location = LineColumn { line: 1, column: 0 };
     if file_exists {
         let contents =
             fs::read_to_string(file_name).expect("Should have been able to read the file");
@@ -314,7 +314,12 @@ fn generate_controller_mod_file_contents(proto_data: &ProtoData) {
                 .iter()
                 .find(|tree_root| tree_root.ident.to_string() == i)
             {
-                Some(item) => location = item.ident.span().end(),
+                Some(item) => {
+                    location = LineColumn {
+                        line: item.ident.span().end().line,
+                        column: item.ident.span().end().column + 1, // Increment for semicolon
+                    }
+                }
                 None => mods.push(i),
             }
         }
@@ -325,12 +330,22 @@ fn generate_controller_mod_file_contents(proto_data: &ProtoData) {
     }
 
     let mut mod_contents: Vec<u8> = Vec::new();
-    for mod_ in mods.iter() {
-        mod_contents.extend(format!("\npub mod {};", mod_).as_bytes().iter())
+    if !(location.line == 1 && location.column == 0) {
+        mod_contents.extend(format!("\n").as_bytes().iter())
     }
+    let mods_string = mods
+        .iter()
+        .map(|mod_| format!("pub mod {};", mod_))
+        .collect::<Vec<String>>()
+        .join("\n");
+    mod_contents.extend(mods_string.as_bytes().iter());
     if file_exists {
-        insert_at_loc_in_file(file_name, location, String::from_utf8(mod_contents).unwrap())
-            .expect("Coudn't update controller mod file.");
+        insert_at_loc_in_file(
+            file_name,
+            location,
+            String::from_utf8(mod_contents).unwrap(),
+        )
+        .expect("Coudn't update controller mod file.");
     } else {
         let mut mod_file = File::create("./web/src/controllers/mod.rs")
             .expect("Could not create controller mod file");

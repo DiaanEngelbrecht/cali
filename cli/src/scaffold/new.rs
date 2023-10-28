@@ -28,7 +28,7 @@ fn create_directories(name: &str) {
         "store/migrations",
         "store/src/repositories",
         "core",
-        "core/src"
+        "core/src",
     ];
 
     directories_to_create.iter().for_each(|dir| {
@@ -49,13 +49,16 @@ static WEB_BUILD_T: &'static str = include_str!("../../templates/web/build.rs.tt
 static WEB_LIB_T: &'static str = include_str!("../../templates/web/src/lib.rs.tt");
 static WEB_CONFIG_T: &'static str = include_str!("../../templates/web/src/config.rs.tt");
 static WEB_DEV_CONFIG_EXAMPLE: &'static str = include_str!("../../templates/web/config/dev.yml.tt");
-static WEB_TEST_CONFIG_EXAMPLE: &'static str = include_str!("../../templates/web/config/test.yml.tt");
-static WEB_CONTROLLER_MOD_T: &'static str = include_str!("../../templates/web/src/controllers/mod.rs.tt");
+static WEB_TEST_CONFIG_EXAMPLE: &'static str =
+    include_str!("../../templates/web/config/test.yml.tt");
+static WEB_CONTROLLER_MOD_T: &'static str =
+    include_str!("../../templates/web/src/controllers/mod.rs.tt");
 static CORE_CARGO_T: &'static str = include_str!("../../templates/core/Cargo.toml.tt");
 static CORE_LIB_T: &'static str = include_str!("../../templates/core/src/lib.rs.tt");
 static STORE_CARGO_T: &'static str = include_str!("../../templates/store/Cargo.toml.tt");
 static STORE_LIB_T: &'static str = include_str!("../../templates/store/src/lib.rs.tt");
-static STORE_REP_MOD_T: &'static str = include_str!("../../templates/store/src/repositories/mod.rs.tt");
+static STORE_REP_MOD_T: &'static str =
+    include_str!("../../templates/store/src/repositories/mod.rs.tt");
 static CARGO_WORKSPACE_T: &'static str = include_str!("../../templates/Cargo.toml.tt");
 static GITIGNORE_WORKSPACE_T: &'static str = include_str!("../../templates/.gitignore.tt");
 static README_WORKSPACE_T: &'static str = include_str!("../../templates/README.md.tt");
@@ -67,8 +70,14 @@ fn create_files(name: &str) {
         (WEB_BUILD_T, format!("./{}/web/build.rs", name)),
         (WEB_LIB_T, format!("./{}/web/src/lib.rs", name)),
         (WEB_CONFIG_T, format!("./{}/web/src/config.rs", name)),
-        (WEB_DEV_CONFIG_EXAMPLE, format!("./{}/web/config/dev.yml", name)),
-        (WEB_CONTROLLER_MOD_T, format!("./{}/web/src/controllers/mod.rs", name)),
+        (
+            WEB_DEV_CONFIG_EXAMPLE,
+            format!("./{}/web/config/dev.yml", name),
+        ),
+        (
+            WEB_CONTROLLER_MOD_T,
+            format!("./{}/web/src/controllers/mod.rs", name),
+        ),
         (
             WEB_TEST_CONFIG_EXAMPLE,
             format!("./{}/web/config/test.yml", name),
@@ -77,7 +86,10 @@ fn create_files(name: &str) {
         (CORE_LIB_T, format!("./{}/core/src/lib.rs", name)),
         (STORE_CARGO_T, format!("./{}/store/Cargo.toml", name)),
         (STORE_LIB_T, format!("./{}/store/src/lib.rs", name)),
-        (STORE_REP_MOD_T, format!("./{}/store/src/repositories/mod.rs", name)),
+        (
+            STORE_REP_MOD_T,
+            format!("./{}/store/src/repositories/mod.rs", name),
+        ),
         (CARGO_WORKSPACE_T, format!("./{}/Cargo.toml", name)),
         (GITIGNORE_WORKSPACE_T, format!("./{}/.gitignore", name)),
         (README_WORKSPACE_T, format!("./{}/README.md", name)),
