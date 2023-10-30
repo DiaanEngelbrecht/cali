@@ -288,9 +288,9 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
             #(#services)*;
 
         log::info!("GRPC server started, waiting for requests...");
-        let mut interrupt_signal = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::interrupt())?;
+        let mut interrupt_signal = tokio::signal::ctrl_c();
         let closer = async move {
-            let _ = interrupt_signal.recv().await;
+            let _ = interrupt_signal.await;
             log::info!("Good bye!");
         };
 
