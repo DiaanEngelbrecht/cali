@@ -1,6 +1,6 @@
 # {name}
 
-Welcome to your brand new flair project!
+Welcome to your brand new cali project!
 
 - Run it using `cargo run`.
 - Build it using `cargo build`.
@@ -12,7 +12,7 @@ Inside the web directory you'll find your config files for each environment. Upd
 # Adding endpoints:
 
 1. Inside the interface directory you can create a new service as you would normally.
-2. Run `flair generate controllers`
+2. Run `cali generate controllers`
 3. Your controller files will now be added to the controllers directory.
 
 # Creating migrations

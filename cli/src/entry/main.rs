@@ -1,13 +1,13 @@
 use clap::{Parser, Subcommand};
-use flair_cli::scaffold::{controller::sync_protos_with_controllers, store::create_store};
+use cali_cli::scaffold::{controller::sync_protos_with_controllers, store::create_store};
 
-/// Flair CLI
+/// Cali CLI
 /// Create a new application with New
 /// Scaffold into an existing application with Generate
 #[derive(Parser, Debug)]
-#[command(name = "Flair CLI")]
+#[command(name = "Cali CLI")]
 #[command(author = "Diaan Engelbrecht")]
-#[command(version, about = "CLI utilities for the Flair Framework", long_about = None)]
+#[command(version, about = "CLI utilities for the Cali Framework", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     commands: Option<Commands>,
@@ -34,7 +34,7 @@ fn main() {
     let cli = Cli::parse();
 
     if let Some(Commands::New { name }) = &cli.commands {
-        flair_cli::scaffold::new::create_app(name);
+        cali_cli::scaffold::new::create_app(name);
     }
 
     if let Some(Commands::Generate { target }) = &cli.commands {

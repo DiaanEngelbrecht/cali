@@ -1,5 +1,5 @@
 [package]
-name = "flair_core"
+name = "cali_core"
 version = "0.2.0"
 edition = "2021"
 

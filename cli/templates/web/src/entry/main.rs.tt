@@ -1,5 +1,5 @@
 use {name}_web::config::Config;
-use flair_derive::setup_server;
+use cali_derive::setup_server;
 use std::\{error::Error, str::FromStr};
 use std::sync::Arc;
 

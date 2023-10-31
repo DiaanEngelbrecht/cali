@@ -2,7 +2,7 @@ extern crate proc_macro;
 use std::path::Path;
 
 use convert_case::{Case, Casing};
-use flair_core::protos::parser::get_proto_data;
+use cali_core::protos::parser::get_proto_data;
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span, TokenStream as TokenStream2};
 use quote::quote;
@@ -33,7 +33,7 @@ pub fn autogen_protos(_item: TokenStream) -> TokenStream {
 
         // build the protos mod.rs
         let path = std::path::Path::new("../interface/grpc/services");
-        let proto_data = flair_core::protos::parser::get_proto_data(&path).expect("Should have worked");
+        let proto_data = cali_core::protos::parser::get_proto_data(&path).expect("Should have worked");
         let mut mod_contents = "".to_string();
         proto_data.services.iter().for_each(|service| {
             let import_line = format!("pub mod {};\n", service.name.to_case(Case::Snake));
@@ -98,7 +98,7 @@ pub fn derive_ensnare(input: TokenStream) -> TokenStream {
         .collect();
 
     let expanded = quote! {
-    impl flair_core::store::snare::Ensnarable for #struct_name {
+    impl cali_core::store::snare::Ensnarable for #struct_name {
                 fn insert_parts(&self) -> (String, String) {
                     (#fields.to_string(), #bind_points.to_string())
                 }
@@ -120,8 +120,8 @@ pub fn derive_ensnare(input: TokenStream) -> TokenStream {
             }
 
             impl #struct_name {
-                pub fn trap(self, table_name: &str) -> flair_core::store::snare::Snare<#struct_name> {
-                    flair_core::store::snare::Snare {
+                pub fn trap(self, table_name: &str) -> cali_core::store::snare::Snare<#struct_name> {
+                    cali_core::store::snare::Snare {
                         query: "".to_string(),
                         table_name: table_name.to_string(),
                         data: self,
@@ -227,7 +227,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
 
     let mut body = quote! {
         // Setup logging
-        flair_core::logging::util::setup();
+        cali_core::logging::util::setup();
 
         log::info!("Getting ready...");
         // Configure CLI App
@@ -268,9 +268,9 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
             .connect(&config.database.url)
             .await?;
 
-        let server_ctx : std::sync::Arc<flair_core::ServerContext> = std::sync::Arc::new(flair_core::ServerContext { db_pool });
+        let server_ctx : std::sync::Arc<cali_core::ServerContext> = std::sync::Arc::new(cali_core::ServerContext { db_pool });
 
-        let context_layer = flair_core::middleware::server_context::ServerContextLayer {
+        let context_layer = cali_core::middleware::server_context::ServerContextLayer {
             config: config.clone(),
             extentable_context: #extentable_context.clone(),
             internal_context: server_ctx.clone()
@@ -280,7 +280,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
     let grpc_segment = quote! {
         #(#controllers)*
 
-        let (host, port) = flair_core::helpers::split_host_and_port(&config.bind_address);
+        let (host, port) = cali_core::helpers::split_host_and_port(&config.bind_address);
         let addr = format!("{}:{}", host, port);
 
         let server = tonic::transport::Server::builder()
@@ -314,11 +314,11 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn test_runner(_input: TokenStream) -> TokenStream {
-    // Rather let this return a wrapping type called test context under flair core?
+    // Rather let this return a wrapping type called test context under cali core?
     // That way I can implement the drop trait on that type and clean up test databases that way?
     let test_setup_body = quote! {
          pub async fn run(config_file: &str, test: impl std::future::Future<Output = ()>) -> () {
-        flair_core::logging::util::setup();
+        cali_core::logging::util::setup();
 
         let config_file = std::fs::File::open(config_file).expect("Could not open config file");
 
@@ -365,12 +365,12 @@ pub fn test_runner(_input: TokenStream) -> TokenStream {
             .await
             .expect("Couldn't connect to test database");
 
-        let mut context: std::collections::HashMap<std::any::TypeId, flair_core::MapKey> =
+        let mut context: std::collections::HashMap<std::any::TypeId, cali_core::MapKey> =
             std::collections::HashMap::new();
 
         context.insert(
-            std::any::TypeId::of::<flair_core::ServerContext>(),
-            std::sync::Arc::new(flair_core::ServerContext { db_pool }),
+            std::any::TypeId::of::<cali_core::ServerContext>(),
+            std::sync::Arc::new(cali_core::ServerContext { db_pool }),
         );
 
 
@@ -379,7 +379,7 @@ pub fn test_runner(_input: TokenStream) -> TokenStream {
             std::sync::Arc::new(config),
         );
 
-        flair_core::SERVER_CONTEXT
+        cali_core::SERVER_CONTEXT
             .scope(std::sync::Arc::new(context), test)
             .await
     }

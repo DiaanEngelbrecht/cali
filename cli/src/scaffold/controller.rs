@@ -1,7 +1,7 @@
 use convert_case::{Case, Casing};
-use flair_core::protos::parser::get_proto_data;
-use flair_core::protos::parser::ProtoData;
-use flair_core::protos::parser::ProtoService;
+use cali_core::protos::parser::get_proto_data;
+use cali_core::protos::parser::ProtoData;
+use cali_core::protos::parser::ProtoService;
 use proc_macro2::{Ident, LineColumn};
 use std::{fs::File, io::Write, path::Path};
 use syn::ImplItemFn;
@@ -276,7 +276,7 @@ use tonic::{{Status, Response, Request}};
 use crate::protos::{snake_name}::{snake_name}_server::{name};
 
 
-flair_derive::controller!({name}Controller);
+cali_derive::controller!({name}Controller);
 #[async_trait]
 impl {name} for {name}Controller {{
 {controller_body}

@@ -1,5 +1,5 @@
 [package]
-name = "flair_cli"
+name = "cali_cli"
 version = "0.2.0"
 edition = "2021"
 
@@ -11,12 +11,12 @@ convert_case = "0.5.0"
 proc-macro2 = { version = "1.0.66", features = ["default", "span-locations"] }
 syn = { version = "2.0" }
 serde = { version = "1.0", features = ["derive"] }
-flair_core = { version = "*", path = "../core" }
+cali_core = { version = "*", path = "../core" }
 clap = { version = "4.0.22", features = ["derive"] }
 quote = "1.0"
 pluralizer = "0.4.0"
 rust-format = "0.3.4"
 
 [[bin]]
-name = "flair_cli"
+name = "cali_cli"
 path = "src/entry/main.rs"

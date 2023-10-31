@@ -41,7 +41,7 @@ pub fn create_store(name: String) {
     let store_contract = quote! {
         use crate::repositories::#namespace::models::#model_ident;
         use async_trait::async_trait;
-        use flair_core::store::snare::DBConnection;
+        use cali_core::store::snare::DBConnection;
         use sqlx::Database;
 
         #[async_trait]
@@ -56,7 +56,7 @@ pub fn create_store(name: String) {
     .to_string();
 
     let store_model = quote! {
-        use flair_derive::Ensnare;
+        use cali_derive::Ensnare;
         use sqlx::FromRow;
 
         #[derive(Clone, Debug, FromRow, Ensnare)]
@@ -70,7 +70,7 @@ pub fn create_store(name: String) {
 
     let store_implementation = quote! {
         use async_trait::async_trait;
-        use flair_core::store::snare::{DBConnection, Ensnared};
+        use cali_core::store::snare::{DBConnection, Ensnared};
 
         use super::contract::#repository_contract;
         use super::models::#model_ident;
