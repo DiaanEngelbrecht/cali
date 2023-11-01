@@ -10,8 +10,8 @@ path = "src/entry/main.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cali_core = \{ version = "*", path = "../../cali/core" }
-cali_derive = \{ version = "*", path = "../../cali/derive" }
+cali_core = 0.2.0
+cali_derive = 0.2.0
 
 tokio = \{ version = "1.32", features = ["rt-multi-thread", "time", "macros", "signal", "process"] }
 tonic = \{ version = "0.9.2", features = ["tls", "codegen"] }
@@ -27,7 +27,7 @@ log = "0.4.17"
 thiserror = "1.0"
 
 [build-dependencies]
-cali_derive = \{ version = "*", path = "../../cali/derive" }
-cali_core = \{ version = "*", path = "../../cali/core" }
+cali_core = 0.2.0
+cali_derive = 0.2.0
 tonic-build = "0.9.2"
 convert_case = "0.5.0"

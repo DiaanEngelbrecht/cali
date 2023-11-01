@@ -6,12 +6,15 @@ Please note, cali is very new and not battle tested. It has a whole bunch of thi
 
 # Getting started
 
-Cali up your rust microservice with:
+Install cali's cli tool:
 ```
-cali_cli new <your project name>
+cargo install cali_cli
 ```
 
-Note: As this isn't published yet, you'll have build a local binary (I use a simple alias: `alias cali_cli='~/repos/cali/target/debug/cali_cli'`).
+Create a new project with:
+```
+cali new <your project name>
+```
 
 This generates a cargo workspace with the following structure:
 ```
@@ -86,7 +89,7 @@ You might have a few of these and feel comfortable passing them in explicitly, b
 
 Other frameworks have built their own version of this concept, but what nice about cali's is that it's completely Tokio. Which means this mechanism isn't specific to the JSON or GRPC library that you use. You can reuse this with any other library, provided it can run on Tokio.
 
-While this is really convenient, there is a cost associated with task switching, and task locals need to be moved around when you suspend your task. Holding onto a few references won't impact your applications performance significantly. Be aware that if you choose to crack this open for your own usecase, that you ideally don't want to store too much in here, and always be very wary of shared global state, so try avoiding mutable wrappers like mutexes in this context.
+While this is really convenient, there is a cost associated with task switching, and task locals need to be moved around when you suspend your task. Holding onto a few references won't impact your applications performance significantly. Be aware that if you choose to crack this open for your own use case, that you ideally don't want to store too much in here, and always be very wary of shared global state, so try avoiding mutable wrappers like mutexes in this context.
 
 ## TODO's
 

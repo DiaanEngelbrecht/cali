@@ -6,5 +6,5 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cali_core = \{ version = "*", path = "../../cali/core" }
+cali_core = "0.2.0"
 {name}_store = \{ version = "*", path = "../store" }
