@@ -6,6 +6,13 @@ Please note, cali is very new and not battle tested. It has a whole bunch of thi
 
 # Getting started
 
+## Preqrequisites
+
+Necessary to install before being able to run the application:
+```
+apt-get install protobuf-compiler pkg-config
+```
+
 Install cali's cli tool:
 ```
 cargo install cali_cli
