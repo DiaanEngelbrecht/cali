@@ -6,6 +6,13 @@ Please note, cali is very new and not battle tested. It has a whole bunch of thi
 
 # Getting started
 
+## Preqrequisites
+
+Necessary to install before being able to run the application:
+```
+apt-get install protobuf-compiler pkg-config
+```
+
 Install cali's cli tool:
 ```
 cargo install cali_cli
@@ -36,7 +43,7 @@ This generates a cargo workspace with the following structure:
 The web package is your entry point, and the interfaces directory specifies your GRPC services and models. Type out a simple service definition under `/interfaces/grpc/services` and run:
 
 ```
-cali_cli generate controllers
+cali generate controllers
 ```
 
 You should see your rust controllers generated in the controllers directory. From here you get to choose:
@@ -65,7 +72,7 @@ Cali wanted to solve the following specific problems:
 - Rust compile times are notorious, and not every team has the expertise/time/option to improve their crates' compilation time. The last resort usually ends up being crate splitting. So what if we just already separated our applications boundaries with crates? Cali makes it easier to split your application into different crates from the get-go, by providing a structure that makes sense. This is a opt in feature, and you are welcome to ignore it if you feel that you don't need it, or embrace it when the time comes. (Repository is split from main body, but core crates are still a concept)
 - Provide a mechanism to to pass values however deep into your call stack without explicitly passing it around. This sounds really bad, and it can be, but humor me for a short detour. It's meant as a ergonomic last resort to pass certain values around without having to explicitly pass it as function parameters or embedding it in some wrapping struct and implementing functions on it. For example, you can embed the correlation/telemetry data in the context for a request, and then have that be available in some deeper nested code across crate boundaries, without having to pass the metadata around. Maybe you already have a good solution for this specific problem, but things like database connection pools, shared clients to third party services, handles to application config & more work really well with this model. It's advisable to not use this with mutable state as it could be hard to predict how requests compete for a mutex. This is the default mechanism for read only config, and to pass access to the database connection pool, it's also possible to still use cali without this mechanism if you don't feel comfortable with the idea of (tokio) task local storage. See the below section on How does it work? for more details. (This is done, but will be changed to allow extension by cali users, only used internally now)
 
-## How does it work?
+## How is cali?
 
 At this stage, cali has two main points:
 
