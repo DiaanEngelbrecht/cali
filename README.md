@@ -36,7 +36,7 @@ This generates a cargo workspace with the following structure:
 The web package is your entry point, and the interfaces directory specifies your GRPC services and models. Type out a simple service definition under `/interfaces/grpc/services` and run:
 
 ```
-cali_cli generate controllers
+cali generate controllers
 ```
 
 You should see your rust controllers generated in the controllers directory. From here you get to choose:
