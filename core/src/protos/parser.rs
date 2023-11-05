@@ -21,7 +21,7 @@ pub struct ProtoRPC {
 
 pub fn get_proto_data(service_root: &Path) -> Result<ProtoData, String> {
     let service_capture_regex =
-        Regex::new(r"service\s*(?P<name>\w+)\s+\{\n(?P<content>(?:(?:.+)\n)*)\}").unwrap();
+        Regex::new(r"service\s*(?P<name>\w+)\s+\{\n(?P<content>(?:(?:.+)\n+)*)\}").unwrap();
     let rpc_capture_regex =
         Regex::new(r"\s*rpc\s+(?P<name>\w+)\s+\((?P<req>\w+)\)\s+returns\s+\((?P<resp>\w+)\)")
             .unwrap();
