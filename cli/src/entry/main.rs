@@ -1,5 +1,5 @@
-use clap::{Parser, Subcommand};
 use cali_cli::scaffold::{controller::sync_protos_with_controllers, store::create_store};
+use clap::{Parser, Subcommand};
 
 /// Cali CLI
 /// Create a new application with New

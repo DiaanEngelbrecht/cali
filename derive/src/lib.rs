@@ -1,8 +1,8 @@
 extern crate proc_macro;
 use std::path::Path;
 
-use convert_case::{Case, Casing};
 use cali_core::protos::parser::get_proto_data;
+use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span, TokenStream as TokenStream2};
 use quote::quote;
@@ -137,7 +137,7 @@ pub fn derive_ensnare(input: TokenStream) -> TokenStream {
 pub fn setup_server(input: TokenStream) -> TokenStream {
     let app_name: String;
     let version: String;
-    let extentable_context: Ident;
+    let server_config: Ident;
 
     let input = proc_macro2::TokenStream::from(input);
     let mut params_stream = input.into_iter();
@@ -159,9 +159,9 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
     }
 
     if let Some(proc_macro2::TokenTree::Ident(val)) = params_stream.next() {
-        extentable_context = val;
+        server_config = val;
     } else {
-        panic!("An extentable_context has to be provided")
+        panic!("Cali config has to be provided")
     }
 
     let path = Path::new("./interface/grpc/services");
@@ -261,18 +261,23 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
             config
         });
 
-        log::info!("Connecting to DB...");
-        let db_pool = sqlx::mysql::MySqlPoolOptions::new()
-            .max_connections(config.database.num_connections)
-            .test_before_acquire(true)
-            .connect(&config.database.url)
-            .await?;
+        let db_pool = if (#server_config.database) {
+            log::info!("Connecting to DB...");
+            let pool = sqlx::mysql::MySqlPoolOptions::new()
+                .max_connections(config.database.num_connections)
+                .test_before_acquire(true)
+                .connect(&config.database.url)
+                .await?;
+            Some(pool)
+        } else {
+            None
+        };
 
         let server_ctx : std::sync::Arc<cali_core::ServerContext> = std::sync::Arc::new(cali_core::ServerContext { db_pool });
 
         let context_layer = cali_core::middleware::server_context::ServerContextLayer {
             config: config.clone(),
-            extentable_context: #extentable_context.clone(),
+            extendable_context: #server_config.global_context.clone(),
             internal_context: server_ctx.clone()
         };
     };
@@ -283,9 +288,14 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
         let (host, port) = cali_core::helpers::split_host_and_port(&config.bind_address);
         let addr = format!("{}:{}", host, port);
 
-        let server = tonic::transport::Server::builder()
-            .layer(context_layer)
-            #(#services)*;
+        let server = if let Some(middleware_fn) = #server_config.middleware_setup {
+            (middleware_fn)(tonic::transport::Server::builder()
+                .layer(context_layer))
+        } else {
+            tonic::transport::Server::builder()
+                .layer(context_layer)
+        }#(#services)*;;
+
 
         log::info!("GRPC server started, waiting for requests...");
         let mut interrupt_signal = tokio::signal::ctrl_c();
