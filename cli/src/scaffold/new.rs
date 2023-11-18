@@ -3,6 +3,8 @@ use std::{fs, path::Path};
 
 use tinytemplate::TinyTemplate;
 
+use crate::{CORE_VERSION, DERIVE_VERSION};
+
 pub fn create_app(name: &str) {
     create_directories(name);
     create_files(name);
@@ -40,6 +42,8 @@ fn create_directories(name: &str) {
 #[derive(Serialize)]
 struct Context {
     name: String,
+    core_version: &'static str,
+    derive_version: &'static str,
 }
 
 // Template static strings
@@ -97,6 +101,8 @@ fn create_files(name: &str) {
     ];
     let context = Context {
         name: name.to_string(),
+        core_version: CORE_VERSION,
+        derive_version: DERIVE_VERSION,
     };
 
     files.iter().for_each(|(content, path)| {

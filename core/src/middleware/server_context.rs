@@ -16,7 +16,7 @@ pub struct ServerContextLayer<
     I: 'static + Send + Sync,
     C: 'static + Send + Sync,
 > {
-    pub extentable_context: Arc<T>,
+    pub extendable_context: Option<Arc<T>>,
     pub internal_context: Arc<I>,
     pub config: Arc<C>,
 } // Internal + a open struct for other people
@@ -31,7 +31,9 @@ where
 
     fn layer(&self, service: S) -> Self::Service {
         let mut context: HashMap<TypeId, MapKey> = HashMap::new();
-        context.insert(TypeId::of::<T>(), self.extentable_context.clone());
+        if let Some(extendable_context) = &self.extendable_context {
+            context.insert(TypeId::of::<T>(), extendable_context.clone());
+        }
         context.insert(TypeId::of::<I>(), self.internal_context.clone());
         context.insert(TypeId::of::<C>(), self.config.clone());
         ServerContextService {

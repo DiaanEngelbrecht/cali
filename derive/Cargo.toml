@@ -1,6 +1,6 @@
 [package]
 name = "cali_derive"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 license = "MIT"
 description = "Contains the macro's used to simplify a Cali project's setup & testing."
@@ -14,5 +14,5 @@ syn = { version = "2.0" }
 quote = "1.0"
 convert_case = "0.5.0"
 proc-macro2 = { version = "1.0.66", features = ["default", "span-locations"] }
-cali_core = "0.2.0"
+cali_core = "0.3.0"
 
