@@ -44,3 +44,40 @@ fn main() {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use assert_cmd::Command;
+
+    struct Cleanup;
+
+    impl Drop for Cleanup {
+        fn drop(&mut self) {
+            std::fs::remove_dir_all("cali_test").expect("Couldn't clean up the test project");
+        }
+    }
+
+    #[test]
+    fn scaffolds_and_compiles() {
+        let mut cmd = Command::cargo_bin("cali").unwrap();
+        let assert = cmd.arg("new").arg("cali_test").assert();
+        let _cleanup = Cleanup;
+        assert.success();
+
+        let cargo_check_command = std::process::Command::new("cargo")
+            .arg("check")
+            .arg("--manifest-path")
+            .arg("./cali_test/Cargo.toml")
+            .output();
+
+        assert!(cargo_check_command.is_ok());
+        if let Ok(output) = cargo_check_command {
+            let code = output.status.code().unwrap();
+            if code > 0 {
+                let str_result = std::str::from_utf8(&output.stderr).unwrap();
+                println!("Error output was {}", str_result);
+            }
+            assert!(code == 0);
+        }
+    }
+}

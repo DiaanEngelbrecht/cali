@@ -260,6 +260,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
             // Edit config here if you want to
             config
         });
+        log::info!("Config loaded!");
 
         let db_pool = if (#server_config.database) {
             log::info!("Connecting to DB...");
@@ -268,6 +269,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
                 .test_before_acquire(true)
                 .connect(&config.database.url)
                 .await?;
+            log::info!("Connected!");
             Some(pool)
         } else {
             None
@@ -280,9 +282,8 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
             extendable_context: #server_config.global_context.clone(),
             internal_context: server_ctx.clone()
         };
-    };
 
-    let grpc_segment = quote! {
+
         #(#controllers)*
 
         let (host, port) = cali_core::helpers::split_host_and_port(&config.bind_address);
@@ -297,13 +298,16 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
         }#(#services)*;;
 
 
-        log::info!("GRPC server started, waiting for requests...");
+    };
+
+    let server_segment = quote! {
         let mut interrupt_signal = tokio::signal::ctrl_c();
         let closer = async move {
             let _ = interrupt_signal.await;
-            log::info!("Good bye!");
+            log::info!("Goodbye!");
         };
 
+        log::info!("GRPC server started, waiting for requests...");
         server
             .serve_with_shutdown(
                 std::net::SocketAddr::from_str(&addr[..]).unwrap(),
@@ -313,10 +317,17 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
                 },
             )
             .await?;
+
+    };
+
+    let no_server_segment = quote! {
+        log::info!("No GRPC services have been defined, terminating server.");
     };
 
     if services.len() > 0 {
-        body.extend(grpc_segment);
+        body.extend(server_segment);
+    } else {
+        body.extend(no_server_segment);
     }
 
     body.into()
