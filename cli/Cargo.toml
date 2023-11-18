@@ -1,6 +1,6 @@
 [package]
 name = "cali_cli"
-version = "0.2.2"
+version = "0.3.0"
 edition = "2021"
 license = "MIT"
 description = "Cali's codegen and cli application"
@@ -14,7 +14,7 @@ convert_case = "0.5.0"
 proc-macro2 = { version = "1.0.66", features = ["default", "span-locations"] }
 syn = { version = "2.0" }
 serde = { version = "1.0", features = ["derive"] }
-cali_core = "0.2.0"
+cali_core = "0.3.0"
 clap = { version = "4.0.22", features = ["derive"] }
 quote = "1.0"
 pluralizer = "0.4.0"
