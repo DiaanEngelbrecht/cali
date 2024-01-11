@@ -6,19 +6,21 @@ Please note, cali is very new and not battle tested. It has a whole bunch of thi
 
 # Getting started
 
-## Preqrequisites
+## Prerequisites
 
-Necessary to install before being able to run the application:
+Cali needs the `protoc` protocol buffers compiler + protocol buffer resource files to build tonic.
+
+### Ubuntu
 ```
-apt-get install protobuf-compiler pkg-config
+sudo apt install -y protobuf-compiler libprotobuf-dev
 ```
 
-Install cali's cli tool:
+Then you want to go ahead and grab cali's cli tool:
 ```
 cargo install cali_cli
 ```
 
-Create a new project with:
+Finally, create a new project with:
 ```
 cali new <your project name>
 ```
@@ -54,7 +56,7 @@ You should see your rust controllers generated in the controllers directory. Fro
 
 For your database logic, we autogenerate a store crate and add it to your project directly. You can delete this if you don't need it. Part of the setup server macro creates a connection pool to your database and injects it into the cali context. You can embed your own global handles to connection pools, configs, or any shared atomic references. As a rule, keep the context light & avoid shared state & mutexes in there unless you understand exactly what you're doing!
 
-Cali also includes the `Ensnare` derive macro, as a wrapper around your Models to codegen insert, update(TODO), and select(TODO) logic. Generally cali prefers sqlx as the highest layer of abstraction, but rewriting certain codepaths can be a chore, so you can lean on this to make life a bit easier.
+Cali also includes the `Ensnare` derive macro, as a wrapper around your database models to codegen insert, update(TODO), and select(TODO) logic. Generally cali prefers sqlx as the highest layer of abstraction, but rewriting certain codepaths can be a chore, so you can lean on this to make life a bit easier.
 
 Feel free to expand the `setup_server!()` macro, and have a look at what it does. You can take parts of the macro, or keep it as is. If you don't want all the database/config management, or you want to handle your tonic server more directly you can just manually implement the parts of main you like. Cali doesn't care about your main file. The `setup_server!()` macro will be split into smaller parts so you can pick and choose as you like.
 
@@ -100,9 +102,7 @@ While this is really convenient, there is a cost associated with task switching,
 
 ## TODO's
 
-- Fix controller mod.rs gen error to not delete other file contents.
 - Add formatting to other issues.
-- Publish, medium priority.
 - Flesh out the rest of snare for some "feels really nice" ORM goodness.
 - Add postgres support to snare, lower priority
 - Move some internal logic to internal crates to test crate splitting, lower priority
