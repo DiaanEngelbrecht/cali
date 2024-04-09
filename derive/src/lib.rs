@@ -1,3 +1,20 @@
+
+//! # About Cali Derive
+//!
+//! Cali is a rust framework for GRPC microservices. The Cali Derive crate is part of a series of
+//! three crates:
+//! - cali_core contains most of the actual logic behind cali. It contains middleware, helpers,
+//!   logging utilities and utilities used in parsing proto files for codegen.
+//! - cali_cli is the command line utility that facilitates codegen for new projects and controller
+//!   and store generation.
+//! - cali_derive - you are here - includes procedural macros that generate the main entry point,
+//!   connects middleware and controllers and does some of the magic.
+//!
+//! Ideally you shouldn't need to use this crate directly, but these docs should serve as a jump
+//! off point to understand what each macro does. You are always encouraged to expand these macros
+//! to take a peek under the hood. I try to keep the generated code legible so that you can copy it
+//! out and use it if you ever need an escape hatch.
+
 extern crate proc_macro;
 use std::path::Path;
 
@@ -8,6 +25,9 @@ use proc_macro2::{Ident, Span, TokenStream as TokenStream2};
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput};
 
+/// This is typically used inside a project's build.rs file. It takes no arguments and serves as a
+/// convenience that automatically generates the necessary tonic code to generate rust code from
+/// proto files.
 #[proc_macro]
 pub fn autogen_protos(_item: TokenStream) -> TokenStream {
     let gen = quote! {
@@ -45,6 +65,9 @@ pub fn autogen_protos(_item: TokenStream) -> TokenStream {
     gen.into()
 }
 
+/// This procedural macro is typically used at the top of a controller file to instantiate a struct
+/// for which the proto service's generated rust trait will be implemented. Usually this is
+/// generated from cali_cli.
 #[proc_macro]
 pub fn controller(input: TokenStream) -> TokenStream {
     let controller_struct_name = Ident::new(&format!("{}", input)[..], Span::call_site());
@@ -61,6 +84,24 @@ pub fn controller(input: TokenStream) -> TokenStream {
     };
     gen.into()
 }
+
+/// Snare is Cali's very simple ORM/convenience around sqlx. You can Ensnare your structs that map
+/// to database table's by including it in your derive directives.
+/// ```rust
+/// #[derive(Clone, FromRow, Ensnare)]
+/// pub struct Account {
+///     pub id: i64,
+///     pub name: String,
+///     pub email: String,
+///     pub password_hash: String
+/// }
+/// ```
+///
+/// From here you should now have trap/1 available on your structs. Trap returns a wrapping type
+/// `Snare<T>` that allows you to generate insert statements with easy:
+/// ```rust
+/// let result = account.trap("accounts").insert().execute(conn).await?;
+/// ```
 #[proc_macro_derive(Ensnare)]
 pub fn derive_ensnare(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -133,6 +174,18 @@ pub fn derive_ensnare(input: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
+/// This is the main magic macro of cali, usually found in the entry/main.rs of the web crate.
+/// It takes three arguments. The first is a string literal that contains your application name,
+/// the second is also a string literal that contains your application version, and the last
+/// argument is your own server config. 
+///
+/// The server config makes use of the builder pattern to enable opt in features of the framework.
+/// At this stage, there are three opt in features:
+/// - Enable database using `.enable_database()`
+/// - Add custom Tower middleware using `.add_middleware(setup_fn: impl FnOnce(Server<CaliBaseTowerStack>) -> Server<ResultTowerStack> + 'static)`
+/// - Create your own globally available context using the `.add_global_context(your_context: T)`
+///   where T is the server context type defined in your application code. This isn't optional, but
+///   can be left to a empty struct with very little consequence.
 #[proc_macro]
 pub fn setup_server(input: TokenStream) -> TokenStream {
     let app_name: String;
@@ -333,6 +386,10 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
     body.into()
 }
 
+/// Usually found in tests/common/mod.rs, this defines run/2 which takes a reference to the server
+/// config file, and the test function. This creates a new test db, runs the required migrations
+/// and injects the required global context. This makes use of your previously configured cali
+/// context.
 #[proc_macro]
 pub fn test_runner(_input: TokenStream) -> TokenStream {
     // Rather let this return a wrapping type called test context under cali core?
