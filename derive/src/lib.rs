@@ -1,4 +1,3 @@
-
 //! # About Cali Derive
 //!
 //! Cali is a rust framework for GRPC microservices. The Cali Derive crate is part of a series of
