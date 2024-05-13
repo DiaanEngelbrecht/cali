@@ -435,12 +435,12 @@ pub fn test_runner(_input: TokenStream) -> TokenStream {
             .await
             .expect("Expected to be able to run migrations");
 
-        let db_pool = sqlx::mysql::MySqlPoolOptions::new()
+        let db_pool = Some(sqlx::mysql::MySqlPoolOptions::new()
             .max_connections(1)
             .test_before_acquire(true)
             .connect(&config.clone().database.url)
             .await
-            .expect("Couldn't connect to test database");
+            .expect("Couldn't connect to test database"));
 
         let mut context: std::collections::HashMap<std::any::TypeId, cali_core::MapKey> =
             std::collections::HashMap::new();
