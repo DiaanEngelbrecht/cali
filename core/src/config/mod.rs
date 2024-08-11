@@ -5,12 +5,15 @@ use tonic::transport::Server;
 pub struct CaliConfig<T, Stack, ResultStack> {
     pub global_context: Option<Arc<T>>,
     pub database: bool,
+    pub tokio_console: bool,
     pub middleware_setup: Option<Box<dyn FnOnce(Server<Stack>) -> Server<ResultStack>>>,
 }
 
 impl<T, Stack, ResultStack> CaliConfig<T, Stack, ResultStack> {
+    /// Creates a new CaliConfig
     pub fn new() -> Self {
         Self {
+            tokio_console: false,
             database: false,
             global_context: None,
             middleware_setup: None,
@@ -21,6 +24,13 @@ impl<T, Stack, ResultStack> CaliConfig<T, Stack, ResultStack> {
     /// enable the database connection functionality of Cali
     pub fn enable_database(mut self) -> Self {
         self.database = true;
+
+        self
+    }
+
+    /// Enables tokio console by calling `console_subscriber::init();`
+    pub fn enable_tokio_console(mut self) -> Self {
+        self.tokio_console = true;
 
         self
     }

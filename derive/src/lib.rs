@@ -148,12 +148,12 @@ pub fn derive_ensnare(input: TokenStream) -> TokenStream {
                     query: sqlx::query::Query<
                         'a,
                         sqlx::MySql,
-                        <sqlx::MySql as sqlx::database::HasArguments<'_>>::Arguments,
+                        <sqlx::MySql as sqlx::Database>::Arguments<'_>,
                     >,
                 ) -> sqlx::query::Query<
                     'a,
                     sqlx::MySql,
-                    <sqlx::MySql as sqlx::database::HasArguments<'_>>::Arguments,
+                    <sqlx::MySql as sqlx::Database>::Arguments<'_>,
                 > {
                     query.#(#bindings).*
                 }
@@ -278,6 +278,12 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
         .collect();
 
     let mut body = quote! {
+        // Setup tokio_console if setup
+
+        if (#server_config.tokio_console) {
+            console_subscriber::init();
+        }
+
         // Setup logging
         cali_core::logging::util::setup();
 

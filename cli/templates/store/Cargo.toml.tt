@@ -9,7 +9,7 @@ edition = "2021"
 cali_core = "{core_version}"
 cali_derive = "{derive_version}"
 
-tokio = \{ version = "1.6", features = ["rt-multi-thread", "time", "macros", "signal", "process"] }
+tokio = \{ version = "1.39.2", features = ["rt-multi-thread", "time", "macros", "signal", "process", "tracing"] }
 chrono = \{ version = "0.4", features = ["serde"] }
 async-trait = "0.1"
-sqlx = \{ version = "0.6.1", default-features = false, features = ["runtime-tokio-native-tls", "mysql", "chrono", "bigdecimal", "macros"] }
+sqlx = \{ version = "0.8.0", default-features = false, features = ["runtime-tokio-native-tls", "mysql", "chrono", "bigdecimal", "macros"] }
