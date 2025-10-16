@@ -13,9 +13,9 @@ pub trait Ensnared {
     fn insert<'a>(
         &'a mut self,
     ) -> sqlx::query::Query<
-        '_,
+        'a,
         sqlx::MySql,
-        <sqlx::MySql as sqlx::Database>::Arguments<'_>,
+        <sqlx::MySql as sqlx::Database>::Arguments<'a>,
     >;
 }
 
@@ -32,7 +32,7 @@ pub trait Ensnarable {
     ) -> sqlx::query::Query<
         'a,
         sqlx::MySql,
-        <sqlx::MySql as sqlx::Database>::Arguments<'_>,
+        <sqlx::MySql as sqlx::Database>::Arguments<'a>,
     >;
 }
 
@@ -40,9 +40,9 @@ impl<T: Ensnarable> Ensnared for Snare<T> {
     fn insert<'a>(
         &'a mut self,
     ) -> sqlx::query::Query<
-        '_,
+        'a,
         sqlx::MySql,
-        <sqlx::MySql as sqlx::Database>::Arguments<'_>,
+        <sqlx::MySql as sqlx::Database>::Arguments<'a>,
     > {
         let (values, bindings) = self.data.insert_parts();
         self.query = format!(

@@ -349,6 +349,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
 
         let server = if let Some(middleware_fn) = #server_config.middleware_setup {
             (middleware_fn)(tonic::transport::Server::builder()
+                .layer(tonic_web::GrpcWebLayer::new())
                 .layer(context_layer))
         } else {
             tonic::transport::Server::builder()

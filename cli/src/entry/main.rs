@@ -1,4 +1,8 @@
-use cali_cli::scaffold::{controller::sync_protos_with_controllers, store::create_store};
+use cali_cli::scaffold::{
+    controller::sync_protos_with_controllers,
+    frontend::{create_frontend, generate_frontend_clients},
+    store::create_store
+};
 use clap::{Parser, Subcommand};
 
 /// Cali CLI
@@ -17,6 +21,9 @@ struct Cli {
 enum Commands {
     New {
         name: String,
+        /// Create project with frontend scaffolding
+        #[arg(long)]
+        frontend: bool,
     },
     Generate {
         #[command(subcommand)]
@@ -28,19 +35,24 @@ enum Commands {
 enum GenerateTarget {
     Controllers,
     Store { name: String },
+    Frontend,
 }
 
 fn main() {
     let cli = Cli::parse();
 
-    if let Some(Commands::New { name }) = &cli.commands {
+    if let Some(Commands::New { name, frontend }) = &cli.commands {
         cali_cli::scaffold::new::create_app(name);
+        if *frontend {
+            create_frontend(name);
+        }
     }
 
     if let Some(Commands::Generate { target }) = &cli.commands {
         match target {
             GenerateTarget::Controllers => sync_protos_with_controllers(),
             GenerateTarget::Store { name } => create_store(name.clone()),
+            GenerateTarget::Frontend => generate_frontend_clients(None),
         }
     }
 }

@@ -1,0 +1,8 @@
+import \{ createConnectTransport \} from '@bufbuild/connect-web';
+
+// Create the transport for communicating with the backend
+// In development, this assumes your gRPC server is running on localhost:50051
+// You'll need tonic-web enabled on the backend for this to work
+export const transport = createConnectTransport(\{
+	baseUrl: 'http://localhost:50051'
+\});
