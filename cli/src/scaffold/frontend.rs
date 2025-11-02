@@ -33,7 +33,8 @@ pub fn create_frontend(project_name: &str) {
             "install",
             "--prefix",
             &frontend_path,
-            "@bufbuild/connect-web@^0.13.0",
+            "@connectrpc/connect@^1.6.1",
+            "@connectrpc/connect-web@^1.6.1",
             "@bufbuild/protobuf@^1.10.1",
         ])
         .status()
@@ -50,8 +51,8 @@ pub fn create_frontend(project_name: &str) {
             "--save-dev",
             "--prefix",
             &frontend_path,
-            "@bufbuild/protoc-gen-es@^1.10.0",
-            "@bufbuild/protoc-gen-connect-es@^0.13.0",
+            "@bufbuild/protoc-gen-es@^1.10.1",
+            "@connectrpc/protoc-gen-connect-es@^1.6.1",
             "prettier",
             "prettier-plugin-svelte",
             "eslint",

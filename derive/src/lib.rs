@@ -69,7 +69,7 @@ pub fn autogen_protos(_item: TokenStream) -> TokenStream {
 /// generated from cali_cli.
 #[proc_macro]
 pub fn controller(input: TokenStream) -> TokenStream {
-    let controller_struct_name = Ident::new(&format!("{}", input)[..], Span::call_site());
+    let controller_struct_name = Ident::new(&input.to_string()[..], Span::call_site());
 
     let gen = quote! {
         #[derive(Clone)]
@@ -176,7 +176,7 @@ pub fn derive_ensnare(input: TokenStream) -> TokenStream {
 /// This is the main magic macro of cali, usually found in the entry/main.rs of the web crate.
 /// It takes three arguments. The first is a string literal that contains your application name,
 /// the second is also a string literal that contains your application version, and the last
-/// argument is your own server config. 
+/// argument is your own server config.
 ///
 /// The server config makes use of the builder pattern to enable opt in features of the framework.
 /// At this stage, there are three opt in features:
@@ -195,7 +195,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
     let mut params_stream = input.into_iter();
 
     if let Some(proc_macro2::TokenTree::Literal(val)) = params_stream.next() {
-        let temp = format!("{}", val);
+        let temp = format!("{val}");
         params_stream.next(); // Skip the comma
         app_name = temp[1..temp.len() - 1].to_string();
     } else {
@@ -203,7 +203,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
     }
 
     if let Some(proc_macro2::TokenTree::Literal(val)) = params_stream.next() {
-        let temp = format!("{}", val);
+        let temp = format!("{val}");
         version = temp[1..temp.len() - 1].to_string();
         params_stream.next(); // Skip the comma
     } else {
@@ -217,9 +217,9 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
     }
 
     let path = Path::new("./interface/grpc/services");
-    let proto_data = get_proto_data(&path).expect("Should have worked");
+    let proto_data = get_proto_data(path).expect("Should have worked");
 
-    let web_crate = Ident::new(&format!("{}_web", app_name)[..], Span::call_site());
+    let web_crate = Ident::new(&format!("{app_name}_web")[..], Span::call_site());
 
     let controllers: Vec<proc_macro2::TokenStream> = proto_data
         .services
@@ -231,7 +231,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
             );
 
             let controller_snake_name = Ident::new(
-                &format!("{}", service.name.to_case(Case::Snake))[..],
+                &service.name.to_case(Case::Snake).to_string()[..],
                 Span::call_site(),
             );
 
@@ -263,7 +263,7 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
             );
 
             let controller_snake_name = Ident::new(
-                &format!("{}", service.name.to_case(Case::Snake))[..],
+                &service.name.to_case(Case::Snake).to_string()[..],
                 Span::call_site(),
             );
             let server_snake_name = Ident::new(
@@ -276,6 +276,26 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
             }
         })
         .collect();
+
+    let server_segment = quote! {
+        let mut interrupt_signal = tokio::signal::ctrl_c();
+        let closer = async move {
+            let _ = interrupt_signal.await;
+            log::info!("Goodbye!");
+        };
+
+        log::info!("GRPC server started, waiting for requests...");
+        server
+            .serve_with_shutdown(
+                std::net::SocketAddr::from_str(&addr[..]).unwrap(),
+                async move {
+                    // Add closers for other processes
+                    let _ = closer.await;
+                },
+            )
+            .await?;
+
+    };
 
     let mut body = quote! {
         // Setup tokio_console if setup
@@ -327,7 +347,13 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
                 .test_before_acquire(true)
                 .connect(&config.database.url)
                 .await?;
-            log::info!("Connected!");
+            log::info!("Connected! Running migrations...");
+            if let Err(e) = sqlx::migrate!("../store/migrations").run(&pool).await {
+                log::error!("Migrations failed, error => {e}");
+                panic!("Could not run migrations");
+            } else {
+                log::info!("Migrations complete!");
+            }
             Some(pool)
         } else {
             None
@@ -347,45 +373,26 @@ pub fn setup_server(input: TokenStream) -> TokenStream {
         let (host, port) = cali_core::helpers::split_host_and_port(&config.bind_address);
         let addr = format!("{}:{}", host, port);
 
-        let server = if let Some(middleware_fn) = #server_config.middleware_setup {
-            (middleware_fn)(tonic::transport::Server::builder()
-                .layer(tonic_web::GrpcWebLayer::new())
-                .layer(context_layer))
+        let mut base_server = tonic::transport::Server::builder()
+              .accept_http1(true)
+              .layer(tower_http::cors::CorsLayer::very_permissive())
+              .layer(tonic_web::GrpcWebLayer::new())
+              .layer(context_layer);
+
+        if let Some(middleware_fn) = #server_config.middleware_setup {
+            let server = (middleware_fn)(base_server)#(#services)*;;
+            #server_segment
         } else {
-            tonic::transport::Server::builder()
-                .layer(context_layer)
-        }#(#services)*;;
-
-
-    };
-
-    let server_segment = quote! {
-        let mut interrupt_signal = tokio::signal::ctrl_c();
-        let closer = async move {
-            let _ = interrupt_signal.await;
-            log::info!("Goodbye!");
-        };
-
-        log::info!("GRPC server started, waiting for requests...");
-        server
-            .serve_with_shutdown(
-                std::net::SocketAddr::from_str(&addr[..]).unwrap(),
-                async move {
-                    // Add closers for other processes
-                    let _ = closer.await;
-                },
-            )
-            .await?;
-
+            let server = (base_server)#(#services)*;;
+            #server_segment
+        }
     };
 
     let no_server_segment = quote! {
         log::info!("No GRPC services have been defined, terminating server.");
     };
 
-    if services.len() > 0 {
-        body.extend(server_segment);
-    } else {
+    if services.is_empty() {
         body.extend(no_server_segment);
     }
 
